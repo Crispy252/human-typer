@@ -1,10 +1,12 @@
-#!/usr/bin/env python3
+#!/usr/local/bin/python3
 """
 Native Messaging Host for Schoology AI Assistant
 Handles communication between Chrome extension and Python backend
 """
 
 import sys
+import site
+site.addsitedir(site.getusersitepackages())
 import json
 import struct
 import logging
