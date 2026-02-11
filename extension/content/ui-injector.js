@@ -15,7 +15,13 @@ class UIInjector {
       return;
     }
 
-    const assignment = window.schoologyDetector.getCurrentAssignment();
+    // Try Schoology detector first
+    let assignment = window.schoologyDetector ? window.schoologyDetector.getCurrentAssignment() : null;
+
+    // Try Google Docs detector if no Schoology assignment found
+    if (!assignment && window.googleDocsDetector) {
+      assignment = window.googleDocsDetector.getCurrentAssignment();
+    }
 
     if (!assignment) {
       return;
@@ -70,6 +76,16 @@ class UIInjector {
         '.discussion-reply-container',
         '.comment-form',
         'form'
+      ],
+      google_doc: [
+        '#docs-toolbar',
+        '.docs-titlebar',
+        'body'
+      ],
+      google_slides: [
+        '#docs-toolbar',
+        '.docs-titlebar',
+        'body'
       ]
     };
 
@@ -151,6 +167,23 @@ class UIInjector {
           existingPosts: assignment.existingPosts
         };
 
+      case 'google_doc':
+        return {
+          title: assignment.title,
+          instructions: assignment.instructions,
+          existingContent: assignment.existingContent,
+          requirements: assignment.requirements,
+          isEmpty: assignment.isEmpty
+        };
+
+      case 'google_slides':
+        return {
+          title: assignment.title,
+          instructions: assignment.instructions,
+          requirements: assignment.requirements,
+          slideCount: assignment.slideCount
+        };
+
       default:
         return {};
     }
@@ -167,6 +200,12 @@ class UIInjector {
 
       case 'discussion':
         return this.fillDiscussionAnswer(assignment, result.text);
+
+      case 'google_doc':
+        return this.fillGoogleDoc(assignment, result.text);
+
+      case 'google_slides':
+        return this.fillGoogleSlides(assignment, result.slides);
     }
   }
 
@@ -311,6 +350,33 @@ class UIInjector {
     if (messageDiv) {
       messageDiv.innerHTML = `<div class="sai-success">${message}</div>`;
     }
+  }
+
+  // Fill Google Doc with generated content
+  fillGoogleDoc(assignment, text) {
+    if (window.googleDocsDetector) {
+      window.googleDocsDetector.insertTextIntoDoc(text);
+      return true;
+    }
+    return false;
+  }
+
+  // Fill Google Slides with generated content
+  fillGoogleSlides(assignment, slides) {
+    // For now, just show the generated content in the overlay
+    // Actual slide manipulation is complex and may require different approach
+    const messageDiv = document.getElementById('sai-message');
+    if (messageDiv && slides) {
+      messageDiv.innerHTML = `
+        <div class="sai-success">
+          Generated ${slides.length} slides! Copy the content below and paste into your presentation:
+          <pre style="white-space: pre-wrap; margin-top: 10px; padding: 10px; background: #f5f5f5; border-radius: 4px;">
+${slides.map((slide, i) => `Slide ${i + 1}: ${slide.title}\n${slide.content}`).join('\n\n')}
+          </pre>
+        </div>
+      `;
+    }
+    return true;
   }
 
   // Hide overlay

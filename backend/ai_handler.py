@@ -41,6 +41,10 @@ class AIHandler:
                 return self.process_essay(data)
             elif assignment_type == 'discussion':
                 return self.process_discussion(data)
+            elif assignment_type == 'google_doc':
+                return self.process_google_doc(data)
+            elif assignment_type == 'google_slides':
+                return self.process_google_slides(data)
             else:
                 raise ValueError(f"Unknown assignment type: {assignment_type}")
 
@@ -282,3 +286,168 @@ Write a {Config.MIN_DISCUSSION_WORDS}-{Config.MAX_DISCUSSION_WORDS} word respons
         except Exception as e:
             logger.error(f"Error generating discussion post: {e}")
             raise
+
+    def process_google_doc(self, data: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Generate content for Google Docs assignment
+
+        Args:
+            data: Google Doc assignment data
+
+        Returns:
+            Dict with generated document text
+        """
+        title = data.get('title', '')
+        instructions = data.get('instructions', '')
+        existing_content = data.get('existingContent', '')
+        requirements = data.get('requirements', {})
+        is_empty = data.get('isEmpty', True)
+
+        min_words = requirements.get('minWords', Config.MIN_ESSAY_WORDS)
+        max_words = requirements.get('maxWords', Config.MAX_ESSAY_WORDS)
+        citations_required = requirements.get('citationsRequired', False)
+
+        # Build context
+        context = f"Document Title: {title}\n"
+        if instructions:
+            context += f"Instructions: {instructions}\n"
+        if existing_content and not is_empty:
+            context += f"\nExisting content in document:\n{existing_content[:500]}\n"
+
+        prompt = f"""You are helping complete a Google Docs assignment.
+
+{context}
+
+Requirements:
+- Length: {min_words}-{max_words} words
+- Citations required: {"Yes" if citations_required else "No"}
+- Document type: {"Empty document (write complete content)" if is_empty else "Document with existing content (add to or improve it)"}
+
+{"Write a complete, well-structured document that fulfills the assignment requirements." if is_empty else "Continue or improve upon the existing content to fulfill the assignment requirements."}"""
+
+        try:
+            response = self.client.chat.completions.create(
+                model=self.model,
+                messages=[
+                    {"role": "system", "content": "You are a skilled academic writer helping complete a Google Docs assignment."},
+                    {"role": "user", "content": prompt}
+                ],
+                temperature=Config.OPENAI_TEMPERATURE,
+                max_tokens=Config.MAX_TOKENS
+            )
+
+            doc_text = response.choices[0].message.content.strip()
+
+            return {
+                'success': True,
+                'text': doc_text,
+                'wordCount': len(doc_text.split())
+            }
+
+        except Exception as e:
+            logger.error(f"Error generating Google Doc content: {e}")
+            raise
+
+    def process_google_slides(self, data: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Generate content for Google Slides presentation
+
+        Args:
+            data: Google Slides assignment data
+
+        Returns:
+            Dict with generated slides
+        """
+        title = data.get('title', '')
+        instructions = data.get('instructions', '')
+        requirements = data.get('requirements', {})
+
+        min_slides = requirements.get('minSlides', 5)
+        max_slides = requirements.get('maxSlides', min_slides)
+
+        prompt = f"""Create a presentation outline for Google Slides.
+
+Title: {title}
+Instructions: {instructions}
+
+Requirements:
+- Number of slides: {min_slides}-{max_slides}
+
+For each slide, provide:
+1. Slide title
+2. Key points/content (bullet points)
+
+Format your response as:
+
+Slide 1: [Title]
+- [Point 1]
+- [Point 2]
+- [Point 3]
+
+Slide 2: [Title]
+...
+
+Create a complete, well-organized presentation."""
+
+        try:
+            response = self.client.chat.completions.create(
+                model=self.model,
+                messages=[
+                    {"role": "system", "content": "You are creating a professional academic presentation."},
+                    {"role": "user", "content": prompt}
+                ],
+                temperature=Config.OPENAI_TEMPERATURE,
+                max_tokens=Config.MAX_TOKENS
+            )
+
+            slides_text = response.choices[0].message.content.strip()
+
+            # Parse slides from response
+            slides = self._parse_slides(slides_text)
+
+            return {
+                'success': True,
+                'slides': slides,
+                'slideCount': len(slides)
+            }
+
+        except Exception as e:
+            logger.error(f"Error generating Google Slides content: {e}")
+            raise
+
+    def _parse_slides(self, text: str) -> List[Dict[str, str]]:
+        """
+        Parse slide content from AI response
+
+        Args:
+            text: AI-generated slides text
+
+        Returns:
+            List of slides with title and content
+        """
+        slides = []
+        current_slide = None
+
+        for line in text.split('\n'):
+            line = line.strip()
+
+            # Check if this is a slide title
+            if line.startswith('Slide ') and ':' in line:
+                if current_slide:
+                    slides.append(current_slide)
+
+                # Extract title
+                title = line.split(':', 1)[1].strip()
+                current_slide = {
+                    'title': title,
+                    'content': ''
+                }
+            elif current_slide and line:
+                # Add content to current slide
+                current_slide['content'] += line + '\n'
+
+        # Add last slide
+        if current_slide:
+            slides.append(current_slide)
+
+        return slides

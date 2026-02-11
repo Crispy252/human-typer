@@ -9,7 +9,9 @@
     "storage"
   ],
   "host_permissions": [
-    "*://*.schoology.com/*"
+    "*://*.schoology.com/*",
+    "*://docs.google.com/*",
+    "*://slides.google.com/*"
   ],
   "background": {
     "service_worker": "background/message-handler.js"
@@ -19,6 +21,18 @@
       "matches": ["*://*.schoology.com/*"],
       "js": [
         "content/schoology-detector.js",
+        "content/ui-injector.js"
+      ],
+      "css": ["content/styles.css"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "*://docs.google.com/document/*",
+        "*://docs.google.com/presentation/*"
+      ],
+      "js": [
+        "content/google-docs-detector.js",
         "content/ui-injector.js"
       ],
       "css": ["content/styles.css"],
