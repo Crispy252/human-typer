@@ -33,6 +33,7 @@
       ],
       "js": [
         "content/google-docs-detector.js",
+        "content/typing-simulator.js",
         "content/ui-injector.js"
       ],
       "css": ["content/styles.css"],

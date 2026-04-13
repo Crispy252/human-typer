@@ -391,6 +391,170 @@ ${slides.map((slide, i) => `Slide ${i + 1}: ${slide.title}\n${slide.content}`).j
       this.backdrop = null;
     }
   }
+
+  // Inject the Typing Simulator floating panel (Google Docs only)
+  injectTypingSimulatorPanel() {
+    if (document.getElementById('sai-typing-panel')) return;
+    if (!window.location.href.includes('docs.google.com')) return;
+    if (window.isDocEditable && !window.isDocEditable()) return;
+
+    const panel = document.createElement('div');
+    panel.id = 'sai-typing-panel';
+    panel.className = 'sai-typing-panel';
+    panel.innerHTML = `
+      <div class="sai-typing-panel-header" id="sai-typing-panel-drag">
+        <span>Typing Simulator</span>
+        <div class="sai-typing-panel-controls">
+          <button class="sai-panel-minimize" id="sai-typing-minimize" title="Minimize">&#8722;</button>
+          <button class="sai-typing-close" id="sai-typing-close" title="Close">&#215;</button>
+        </div>
+      </div>
+      <div class="sai-typing-panel-body" id="sai-typing-body">
+        <div class="sai-typing-field-group">
+          <label class="sai-typing-label">Text to type</label>
+          <textarea class="sai-typing-textarea" id="sai-typing-text"
+                    placeholder="Paste your text here..."></textarea>
+        </div>
+        <div class="sai-typing-field-inline">
+          <label class="sai-typing-label" style="margin:0">Duration (minutes)</label>
+          <input type="number" class="sai-typing-number-input" id="sai-typing-duration"
+                 value="5" min="0.5" max="120" step="0.5">
+        </div>
+        <div class="sai-typing-field-group">
+          <label class="sai-typing-label">
+            Speed variability: <span id="sai-variability-val">40%</span>
+          </label>
+          <input type="range" class="sai-typing-slider" id="sai-typing-variability"
+                 min="0" max="100" value="40">
+        </div>
+        <div class="sai-typing-field-group">
+          <label class="sai-typing-label">
+            Typo rate: <span id="sai-typo-val">3%</span>
+          </label>
+          <input type="range" class="sai-typing-slider" id="sai-typing-typo"
+                 min="0" max="15" value="3">
+        </div>
+        <div class="sai-typing-progress-section" id="sai-typing-progress-section" style="display:none">
+          <div class="sai-typing-progress-bar">
+            <div class="sai-typing-progress-fill" id="sai-typing-progress-fill"></div>
+          </div>
+          <div class="sai-typing-stats" id="sai-typing-stats">0 / 0 characters</div>
+        </div>
+        <div class="sai-typing-buttons">
+          <button class="sai-btn-start" id="sai-typing-start">Start</button>
+          <button class="sai-btn-pause" id="sai-typing-pause" disabled>Pause</button>
+          <button class="sai-btn-stop"  id="sai-typing-stop"  disabled>Stop</button>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(panel);
+    this._bindTypingPanelEvents(panel);
+  }
+
+  _bindTypingPanelEvents(panel) {
+    const sim = window.typingSimulator;
+
+    // Live label updates for sliders
+    document.getElementById('sai-typing-variability').addEventListener('input', (e) => {
+      document.getElementById('sai-variability-val').textContent = e.target.value + '%';
+    });
+    document.getElementById('sai-typing-typo').addEventListener('input', (e) => {
+      document.getElementById('sai-typo-val').textContent = e.target.value + '%';
+    });
+
+    // Start button
+    document.getElementById('sai-typing-start').addEventListener('click', () => {
+      const text = document.getElementById('sai-typing-text').value;
+      if (!text.trim()) {
+        alert('Please paste some text before starting.');
+        return;
+      }
+      const durationMinutes = parseFloat(document.getElementById('sai-typing-duration').value) || 5;
+      const variability = parseInt(document.getElementById('sai-typing-variability').value) / 100;
+      const typoRate = parseInt(document.getElementById('sai-typing-typo').value) / 100;
+
+      document.getElementById('sai-typing-progress-section').style.display = 'block';
+      document.getElementById('sai-typing-start').disabled = true;
+      document.getElementById('sai-typing-pause').disabled = false;
+      document.getElementById('sai-typing-stop').disabled = false;
+      document.getElementById('sai-typing-progress-fill').style.width = '0%';
+      document.getElementById('sai-typing-stats').textContent = `0 / ${text.length} characters`;
+
+      sim.start(text, { durationMinutes, variability, typoRate }, (fraction, typed, total) => {
+        document.getElementById('sai-typing-progress-fill').style.width = (fraction * 100).toFixed(1) + '%';
+        document.getElementById('sai-typing-stats').textContent = `${typed} / ${total} characters`;
+      }).then(() => {
+        document.getElementById('sai-typing-start').disabled = false;
+        document.getElementById('sai-typing-pause').disabled = true;
+        document.getElementById('sai-typing-stop').disabled = true;
+        document.getElementById('sai-typing-pause').textContent = 'Pause';
+      });
+    });
+
+    // Pause / Resume button
+    document.getElementById('sai-typing-pause').addEventListener('click', () => {
+      if (sim.isPaused) {
+        sim.resume();
+        document.getElementById('sai-typing-pause').textContent = 'Pause';
+      } else {
+        sim.pause();
+        document.getElementById('sai-typing-pause').textContent = 'Resume';
+      }
+    });
+
+    // Stop button
+    document.getElementById('sai-typing-stop').addEventListener('click', () => {
+      sim.stop();
+      document.getElementById('sai-typing-start').disabled = false;
+      document.getElementById('sai-typing-pause').disabled = true;
+      document.getElementById('sai-typing-stop').disabled = true;
+      document.getElementById('sai-typing-pause').textContent = 'Pause';
+    });
+
+    // Close button
+    document.getElementById('sai-typing-close').addEventListener('click', () => {
+      sim.stop();
+      panel.remove();
+    });
+
+    // Minimize button
+    document.getElementById('sai-typing-minimize').addEventListener('click', () => {
+      const body = document.getElementById('sai-typing-body');
+      const btn = document.getElementById('sai-typing-minimize');
+      const isHidden = body.style.display === 'none';
+      body.style.display = isHidden ? '' : 'none';
+      btn.innerHTML = isHidden ? '&#8722;' : '+';
+    });
+
+    // Drag support
+    this._makeDraggable(panel, document.getElementById('sai-typing-panel-drag'));
+  }
+
+  _makeDraggable(panel, handle) {
+    let startX, startY, startLeft, startTop;
+
+    handle.addEventListener('mousedown', (e) => {
+      if (e.target.tagName === 'BUTTON') return;
+      startX = e.clientX;
+      startY = e.clientY;
+      const rect = panel.getBoundingClientRect();
+      startLeft = rect.left;
+      startTop = rect.top;
+      panel.style.right = 'auto';
+
+      const onMove = (e) => {
+        panel.style.left = (startLeft + e.clientX - startX) + 'px';
+        panel.style.top  = (startTop  + e.clientY - startY) + 'px';
+      };
+      const onUp = () => {
+        document.removeEventListener('mousemove', onMove);
+        document.removeEventListener('mouseup', onUp);
+      };
+      document.addEventListener('mousemove', onMove);
+      document.addEventListener('mouseup', onUp);
+    });
+  }
 }
 
 // Initialize UI injector
@@ -402,9 +566,15 @@ function initialize() {
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
       setTimeout(() => uiInjector.injectAutoCompleteButton(), 1000);
+      if (window.location.href.includes('docs.google.com')) {
+        setTimeout(() => uiInjector.injectTypingSimulatorPanel(), 1500);
+      }
     });
   } else {
     setTimeout(() => uiInjector.injectAutoCompleteButton(), 1000);
+    if (window.location.href.includes('docs.google.com')) {
+      setTimeout(() => uiInjector.injectTypingSimulatorPanel(), 1500);
+    }
   }
 
   // Re-inject on URL changes (for single-page app navigation)
