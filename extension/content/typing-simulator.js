@@ -1,7 +1,12 @@
 /**
  * Google Docs Typing Simulator
  * Simulates realistic human typing with variable speed, mistakes, and corrections.
- * Exported as window.typingSimulator for use by ui-injector.js
+ *
+ * Uses the Chrome Debugger API (via background/message-handler.js) to fire real
+ * trusted keyboard events — the only reliable way to inject text into Google Docs
+ * from an extension, since Docs ignores synthetic (isTrusted:false) events.
+ *
+ * Exported as window.typingSimulator for use by ui-injector.js.
  */
 
 // QWERTY adjacent key map for realistic typos
@@ -74,95 +79,134 @@ function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-function getDocsEditorTarget() {
-  return document.querySelector('.kix-appview-editor') ||
-         document.querySelector('[contenteditable="true"]') ||
-         document.querySelector('.kix-canvas') ||
-         document.body;
-}
-
 function isDocEditable() {
   return !!(
-    document.querySelector('.kix-appview-editor') ||
-    document.querySelector('.docs-texteventtarget-iframe')
+    document.querySelector('.docs-texteventtarget-iframe') ||
+    document.querySelector('.kix-appview-editor')
   );
 }
 
-function focusEditor(targetEl) {
-  targetEl.click();
-  targetEl.focus();
+// ─── Chrome Debugger API bridge ───────────────────────────────────────────────
+// All input goes through the background script via Chrome Debugger Protocol.
+// CDP events are trusted — Google Docs responds to them, unlike synthetic
+// JS events which have isTrusted:false and are ignored.
+
+function bgSend(msg) {
+  return new Promise(resolve => {
+    chrome.runtime.sendMessage(msg, (response) => {
+      if (chrome.runtime.lastError) {
+        console.warn('[TypingSimulator] sendMessage error:', chrome.runtime.lastError.message);
+        // Retry once — service worker may have been sleeping
+        setTimeout(() => {
+          chrome.runtime.sendMessage(msg, resolve);
+        }, 500);
+      } else {
+        resolve(response);
+      }
+    });
+  });
 }
 
-async function dispatchChar(ch, targetEl) {
-  const code = ch.toUpperCase().charCodeAt(0);
+async function cdpAttach() {
+  const res = await bgSend({ type: 'DEBUGGER_ATTACH' });
+  console.log('[TypingSimulator] cdpAttach result:', res);
+  if (!res) return { success: false, error: 'No response from background script' };
+  return res;
+}
 
-  targetEl.dispatchEvent(new KeyboardEvent('keydown', {
-    key: ch, code: `Key${ch.toUpperCase()}`,
-    keyCode: code, which: code,
-    bubbles: true, cancelable: true, composed: true
-  }));
+async function cdpDetach() {
+  await bgSend({ type: 'DEBUGGER_DETACH' });
+}
 
-  targetEl.dispatchEvent(new KeyboardEvent('keypress', {
-    key: ch, charCode: ch.charCodeAt(0),
-    keyCode: code, which: code,
-    bubbles: true, cancelable: true, composed: true
-  }));
+// Returns the Windows Virtual Key code for a character.
+function vkCode(ch) {
+  const upper = ch.toUpperCase();
+  if (upper >= 'A' && upper <= 'Z') return upper.charCodeAt(0);  // 65-90
+  if (ch >= '0' && ch <= '9') return ch.charCodeAt(0);           // 48-57
+  if (ch === ' ') return 32;
+  // Special shifted chars — return the base key VK
+  const shiftMap = { '!':49,'@':50,'#':51,'$':52,'%':53,'^':54,'&':55,'*':56,'(':57,')':48,
+                     '_':189,'+':187,'{':219,'}':221,'|':220,':':186,'"':222,'<':188,'>':190,'?':191,'~':192 };
+  if (shiftMap[ch] !== undefined) return shiftMap[ch];
+  return ch.charCodeAt(0);
+}
 
-  const success = document.execCommand('insertText', false, ch);
-  if (!success) {
-    try {
-      targetEl.dispatchEvent(new TextEvent('textInput', {
-        bubbles: true, cancelable: true, data: ch
-      }));
-    } catch (_) {
-      // TextEvent not supported in all browsers
-    }
+// Whether a character needs the Shift modifier
+function needsShift(ch) {
+  if (ch >= 'A' && ch <= 'Z') return true;
+  return '!@#$%^&*()_+{}|:"<>?~'.includes(ch);
+}
+
+// Dispatch a printable character via the rawKeyDown → char → keyUp CDP sequence.
+// This goes through the browser's normal keyboard pipeline — Google Docs responds to it.
+async function dispatchChar(ch) {
+  const vk = vkCode(ch);
+  const modifiers = needsShift(ch) ? 8 : 0; // 8 = Shift
+  const base = {
+    key: ch,
+    text: ch,
+    unmodifiedText: ch.toLowerCase(),
+    windowsVirtualKeyCode: vk,
+    nativeVirtualKeyCode: vk,
+    modifiers,
+    autoRepeat: false,
+    isKeypad: false,
+    isSystemKey: false,
+  };
+  await bgSend({ type: 'DEBUGGER_KEY_EVENT', params: { ...base, type: 'rawKeyDown' } });
+  await bgSend({ type: 'DEBUGGER_KEY_EVENT', params: { ...base, type: 'char' } });
+  await bgSend({ type: 'DEBUGGER_KEY_EVENT', params: { ...base, type: 'keyUp' } });
+}
+
+async function dispatchBackspace() {
+  const base = { key: 'Backspace', windowsVirtualKeyCode: 8, nativeVirtualKeyCode: 8,
+                 modifiers: 0, autoRepeat: false, isKeypad: false, isSystemKey: false };
+  await bgSend({ type: 'DEBUGGER_KEY_EVENT', params: { ...base, type: 'rawKeyDown' } });
+  await bgSend({ type: 'DEBUGGER_KEY_EVENT', params: { ...base, type: 'keyUp' } });
+}
+
+async function dispatchEnter() {
+  const base = { key: 'Enter', text: '\r', windowsVirtualKeyCode: 13, nativeVirtualKeyCode: 13,
+                 modifiers: 0, autoRepeat: false, isKeypad: false, isSystemKey: false };
+  await bgSend({ type: 'DEBUGGER_KEY_EVENT', params: { ...base, type: 'rawKeyDown' } });
+  await bgSend({ type: 'DEBUGGER_KEY_EVENT', params: { ...base, type: 'char' } });
+  await bgSend({ type: 'DEBUGGER_KEY_EVENT', params: { ...base, type: 'keyUp' } });
+}
+
+// Click the Google Docs canvas via CDP to ensure it has focus before typing.
+async function cdpFocusDoc() {
+  const canvas = document.querySelector('.kix-appview-editor') ||
+                 document.querySelector('.kix-canvas-tile-content');
+  let x, y;
+  if (canvas) {
+    const r = canvas.getBoundingClientRect();
+    x = Math.round(r.left + r.width / 2);
+    y = Math.round(r.top + r.height / 2);
+  } else {
+    x = Math.round(window.innerWidth / 2);
+    y = Math.round(window.innerHeight * 0.4);
   }
-
-  targetEl.dispatchEvent(new KeyboardEvent('keyup', {
-    key: ch, code: `Key${ch.toUpperCase()}`,
-    keyCode: code, which: code,
-    bubbles: true, cancelable: true, composed: true
-  }));
+  const base = { x, y, button: 'left', clickCount: 1, modifiers: 0 };
+  await bgSend({ type: 'DEBUGGER_MOUSE_EVENT', params: { ...base, type: 'mousePressed', buttons: 1 } });
+  await bgSend({ type: 'DEBUGGER_MOUSE_EVENT', params: { ...base, type: 'mouseReleased', buttons: 0 } });
+  console.log('[TypingSimulator] cdpFocusDoc clicked at', x, y);
 }
+// ─────────────────────────────────────────────────────────────────────────────
 
-async function dispatchBackspace(targetEl) {
-  const opts = {
-    key: 'Backspace', code: 'Backspace',
-    keyCode: 8, which: 8,
-    bubbles: true, cancelable: true, composed: true
-  };
-  targetEl.dispatchEvent(new KeyboardEvent('keydown', opts));
-  document.execCommand('delete', false);
-  targetEl.dispatchEvent(new KeyboardEvent('keyup', opts));
-}
-
-async function dispatchEnter(targetEl) {
-  const opts = {
-    key: 'Enter', code: 'Enter',
-    keyCode: 13, which: 13,
-    bubbles: true, cancelable: true, composed: true
-  };
-  targetEl.dispatchEvent(new KeyboardEvent('keydown', opts));
-  document.execCommand('insertParagraph', false);
-  targetEl.dispatchEvent(new KeyboardEvent('keyup', opts));
-}
-
-// Estimate total typing time for a given text and settings (used for pacing)
+// Estimate total typing time for pacing (used to compute the scaling factor)
 function estimateTotalTime(text, baseDelayMs, variability, typoRate) {
   let total = 0;
   let burstRem = randomBurstLength();
   for (let i = 0; i < text.length; i++) {
     if (burstRem === 0) {
-      total += 800; // avg thinking pause between bursts
+      total += 800; // avg thinking pause
       burstRem = randomBurstLength();
     }
     const burstFactor = burstRem > 0 ? 0.7 : 1.0;
     total += baseDelayMs * burstFactor;
     burstRem--;
     if (Math.random() < typoRate) {
-      // Typo overhead: wrong char + notice delay (avg 2) + backspaces + retype
-      total += baseDelayMs * 6;
+      total += baseDelayMs * 6; // typo overhead
     }
   }
   return total;
@@ -173,135 +217,140 @@ class TypingSimulator {
     this.isRunning = false;
     this.isPaused = false;
     this._stopRequested = false;
-    this._onProgress = null;
   }
 
   /**
    * Start typing the given text over the specified duration.
    * @param {string} text - Text to type
    * @param {object} settings - { durationMinutes, variability (0-1), typoRate (0-1) }
-   * @param {function} onProgress - Callback: (fraction, charsTyped, total)
+   * @param {function} onProgress - Callback: (fraction, charsTyped, total) — fraction=-1 means error
+   * @param {function} onStatus   - Callback: (message) — shows step-by-step status in the panel
    * @returns {Promise<void>}
    */
-  async start(text, settings, onProgress) {
+  async start(text, settings, onProgress, onStatus) {
     if (this.isRunning) return;
+
+    const status = (msg) => {
+      console.log('[TypingSimulator]', msg);
+      if (onStatus) onStatus(msg);
+    };
 
     this.isRunning = true;
     this.isPaused = false;
     this._stopRequested = false;
-    this._onProgress = onProgress || null;
 
     const { durationMinutes, variability = 0.4, typoRate = 0.03 } = settings;
     const targetMs = durationMinutes * 60 * 1000;
-
-    // Base delay assuming uniform typing (no bursts/typos yet)
     const roughBase = targetMs / text.length;
 
-    // Estimate actual time including burst pauses and typo overhead
     const estimated = estimateTotalTime(text, roughBase, variability, typoRate);
     const scale = targetMs / Math.max(estimated, 1);
     const scaledBase = roughBase * scale;
 
-    const target = getDocsEditorTarget();
-    focusEditor(target);
+    // Attach the Chrome Debugger — this is what makes typing actually work
+    status('Attaching debugger...');
+    const attachResult = await cdpAttach();
+    if (!attachResult.success) {
+      const reason = attachResult.error || 'unknown error';
+      status(`ERROR: ${reason}. Close DevTools on this tab, then reload the extension and try again.`);
+      this.isRunning = false;
+      if (onProgress) onProgress(-1, 0, text.length);
+      return;
+    }
+    status('Debugger attached. Clicking doc to set focus...');
+
+    // Click the canvas to ensure Google Docs has keyboard focus
+    await cdpFocusDoc();
+    await sleep(200);
+    status(`Starting to type ${text.length} characters over ${durationMinutes} min...`);
 
     let burstRem = randomBurstLength();
     let i = 0;
-    // State for pending typo correction
-    // { countdown: number, correctBuffer: string[] }
-    let pendingCorrection = null;
+    let pendingCorrection = null; // { countdown, correctBuffer }
     const startTime = Date.now();
 
-    while (i < text.length) {
-      if (this._stopRequested) break;
-
-      // Pause loop
-      while (this.isPaused) {
-        await sleep(100);
+    try {
+      while (i < text.length) {
         if (this._stopRequested) break;
-      }
-      if (this._stopRequested) break;
 
-      // Burst transition
-      if (burstRem === 0) {
-        const thinkMs = (300 + Math.random() * 1200) * scale;
-        await sleep(thinkMs);
-        burstRem = randomBurstLength();
-        // Re-focus after pause in case user clicked elsewhere
-        focusEditor(target);
-      }
+        while (this.isPaused) {
+          await sleep(100);
+          if (this._stopRequested) break;
+        }
+        if (this._stopRequested) break;
 
-      const ch = text[i];
-      const inBurst = burstRem > 0;
+        // Burst transition — pause to simulate thinking
+        if (burstRem === 0) {
+          const thinkMs = (300 + Math.random() * 1200) * scale;
+          await sleep(thinkMs);
+          burstRem = randomBurstLength();
+        }
 
-      if (ch === '\n') {
-        await dispatchEnter(target);
-      } else if (ch === '\r') {
-        // Skip carriage returns
-      } else {
-        // Decide whether to inject a typo at this position
-        if (!pendingCorrection && Math.random() < typoRate) {
-          const wrongChar = getAdjacentKey(ch);
-          if (wrongChar) {
-            // Type the wrong character
-            await dispatchChar(wrongChar, target);
-            await sleep(jitteredDelay(scaledBase * (inBurst ? 0.7 : 1.0), variability));
-            // Notice after 0–4 more characters
-            const noticeAfter = Math.floor(Math.random() * 5);
-            pendingCorrection = { countdown: noticeAfter, correctBuffer: [ch] };
+        const ch = text[i];
+        const inBurst = burstRem > 0;
+
+        if (ch === '\n') {
+          await dispatchEnter();
+        } else if (ch === '\r') {
+          // skip
+        } else {
+          // Possibly inject a typo
+          if (!pendingCorrection && Math.random() < typoRate) {
+            const wrongChar = getAdjacentKey(ch);
+            if (wrongChar) {
+              await dispatchChar(wrongChar);
+              await sleep(jitteredDelay(scaledBase * (inBurst ? 0.7 : 1.0), variability));
+              const noticeAfter = Math.floor(Math.random() * 5);
+              pendingCorrection = { countdown: noticeAfter, correctBuffer: [ch] };
+            } else {
+              await dispatchChar(ch);
+            }
           } else {
-            await dispatchChar(ch, target);
-          }
-        } else {
-          await dispatchChar(ch, target);
-        }
-      }
-
-      // Handle pending typo correction
-      if (pendingCorrection) {
-        if (pendingCorrection.countdown === 0) {
-          // Pause briefly before correcting (human notices mistake)
-          await sleep(jitteredDelay(scaledBase * 1.5, 0.3));
-          // Backspace over wrong char + anything typed after it
-          const deleteCount = pendingCorrection.correctBuffer.length + 1;
-          for (let b = 0; b < deleteCount; b++) {
-            await dispatchBackspace(target);
-            await sleep(jitteredDelay(scaledBase * 0.45, 0.3));
-          }
-          // Retype the correct characters
-          for (const c of pendingCorrection.correctBuffer) {
-            await dispatchChar(c, target);
-            await sleep(jitteredDelay(scaledBase, variability));
-          }
-          pendingCorrection = null;
-        } else {
-          pendingCorrection.countdown--;
-          if (ch !== '\n' && ch !== '\r') {
-            pendingCorrection.correctBuffer.push(ch);
+            await dispatchChar(ch);
           }
         }
+
+        // Handle pending typo correction
+        if (pendingCorrection) {
+          if (pendingCorrection.countdown === 0) {
+            await sleep(jitteredDelay(scaledBase * 1.5, 0.3));
+            const deleteCount = pendingCorrection.correctBuffer.length + 1;
+            for (let b = 0; b < deleteCount; b++) {
+              await dispatchBackspace();
+              await sleep(jitteredDelay(scaledBase * 0.45, 0.3));
+            }
+            for (const c of pendingCorrection.correctBuffer) {
+              await dispatchChar(c);
+              await sleep(jitteredDelay(scaledBase, variability));
+            }
+            pendingCorrection = null;
+          } else {
+            pendingCorrection.countdown--;
+            if (ch !== '\n' && ch !== '\r') {
+              pendingCorrection.correctBuffer.push(ch);
+            }
+          }
+        }
+
+        burstRem--;
+        i++;
+
+        if (onProgress) onProgress(i / text.length, i, text.length);
+
+        // Drift-corrected delay
+        const elapsed = Date.now() - startTime;
+        const theoretical = (i / text.length) * targetMs;
+        const drift = elapsed - theoretical;
+        const rawDelay = jitteredDelay(scaledBase * (inBurst ? 0.7 : 1.0), variability);
+        await sleep(Math.max(10, rawDelay - drift));
       }
-
-      burstRem--;
-      i++;
-
-      if (this._onProgress) {
-        this._onProgress(i / text.length, i, text.length);
+    } finally {
+      await cdpDetach();
+      this.isRunning = false;
+      this.isPaused = false;
+      if (onProgress && !this._stopRequested) {
+        onProgress(1, text.length, text.length);
       }
-
-      // Drift-corrected delay
-      const elapsed = Date.now() - startTime;
-      const theoretical = (i / text.length) * targetMs;
-      const drift = elapsed - theoretical;
-      const rawDelay = jitteredDelay(scaledBase * (inBurst ? 0.7 : 1.0), variability);
-      const adjustedDelay = Math.max(10, rawDelay - drift);
-      await sleep(adjustedDelay);
-    }
-
-    this.isRunning = false;
-    this.isPaused = false;
-    if (this._onProgress && !this._stopRequested) {
-      this._onProgress(1, text.length, text.length);
     }
   }
 
@@ -320,10 +369,7 @@ class TypingSimulator {
   }
 
   getStatus() {
-    return {
-      isRunning: this.isRunning,
-      isPaused: this.isPaused,
-    };
+    return { isRunning: this.isRunning, isPaused: this.isPaused };
   }
 }
 

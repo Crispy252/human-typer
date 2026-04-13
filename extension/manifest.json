@@ -6,7 +6,8 @@
   "permissions": [
     "nativeMessaging",
     "activeTab",
-    "storage"
+    "storage",
+    "debugger"
   ],
   "host_permissions": [
     "*://*.schoology.com/*",
