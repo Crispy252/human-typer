@@ -75,9 +75,66 @@ function sendToNativeHost(message, callback) {
   }
 }
 
+// Track which tabs have the debugger attached
+const debuggerTabs = new Set();
+
+chrome.debugger.onDetach.addListener((source) => {
+  debuggerTabs.delete(source.tabId);
+});
+
 // Handle messages from content scripts and popup
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   console.log('Received message:', request);
+
+  // --- Chrome Debugger API handlers for typing simulator ---
+
+  if (request.type === 'DEBUGGER_ATTACH') {
+    const tabId = sender.tab.id;
+    if (debuggerTabs.has(tabId)) {
+      sendResponse({ success: true });
+      return true;
+    }
+    chrome.debugger.attach({ tabId }, '1.3', () => {
+      if (chrome.runtime.lastError) {
+        sendResponse({ success: false, error: chrome.runtime.lastError.message });
+      } else {
+        debuggerTabs.add(tabId);
+        sendResponse({ success: true });
+      }
+    });
+    return true;
+  }
+
+  if (request.type === 'DEBUGGER_INSERT_TEXT') {
+    const tabId = sender.tab.id;
+    chrome.debugger.sendCommand({ tabId }, 'Input.insertText', { text: request.text }, () => {
+      sendResponse({ success: !chrome.runtime.lastError });
+    });
+    return true;
+  }
+
+  if (request.type === 'DEBUGGER_KEY_EVENT') {
+    const tabId = sender.tab.id;
+    chrome.debugger.sendCommand({ tabId }, 'Input.dispatchKeyEvent', request.params, () => {
+      sendResponse({ success: !chrome.runtime.lastError });
+    });
+    return true;
+  }
+
+  if (request.type === 'DEBUGGER_DETACH') {
+    const tabId = sender.tab.id;
+    if (!debuggerTabs.has(tabId)) {
+      sendResponse({ success: true });
+      return true;
+    }
+    chrome.debugger.detach({ tabId }, () => {
+      debuggerTabs.delete(tabId);
+      sendResponse({ success: true });
+    });
+    return true;
+  }
+
+  // --- End debugger handlers ---
 
   if (request.type === 'TEST_CONNECTION') {
     sendToNativeHost({ type: 'ping' }, (response) => {
