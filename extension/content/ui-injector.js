@@ -455,68 +455,71 @@ ${slides.map((slide, i) => `Slide ${i + 1}: ${slide.title}\n${slide.content}`).j
   _bindTypingPanelEvents(panel) {
     const sim = window.typingSimulator;
 
+    // Safe getElementById — returns null silently if panel was removed
+    const el = (id) => document.getElementById(id);
+    const set = (id, prop, val) => { const e = el(id); if (e) e[prop] = val; };
+
     // Live label updates for sliders
-    document.getElementById('sai-typing-variability').addEventListener('input', (e) => {
-      document.getElementById('sai-variability-val').textContent = e.target.value + '%';
+    el('sai-typing-variability').addEventListener('input', (e) => {
+      set('sai-variability-val', 'textContent', e.target.value + '%');
     });
-    document.getElementById('sai-typing-typo').addEventListener('input', (e) => {
-      document.getElementById('sai-typo-val').textContent = e.target.value + '%';
+    el('sai-typing-typo').addEventListener('input', (e) => {
+      set('sai-typo-val', 'textContent', e.target.value + '%');
     });
 
-    // Start button — runs a 3-second countdown so the user can click into the doc
-    document.getElementById('sai-typing-start').addEventListener('click', () => {
-      const text = document.getElementById('sai-typing-text').value;
+    const resetButtons = () => {
+      set('sai-typing-start', 'disabled', false);
+      set('sai-typing-pause', 'disabled', true);
+      set('sai-typing-stop',  'disabled', true);
+      set('sai-typing-pause', 'textContent', 'Pause');
+    };
+
+    // Start button — runs a 3-second countdown, then fires the simulator
+    el('sai-typing-start').addEventListener('click', () => {
+      const text = el('sai-typing-text') ? el('sai-typing-text').value : '';
       if (!text.trim()) {
         alert('Please paste some text before starting.');
         return;
       }
-      const durationMinutes = parseFloat(document.getElementById('sai-typing-duration').value) || 5;
-      const variability = parseInt(document.getElementById('sai-typing-variability').value) / 100;
-      const typoRate = parseInt(document.getElementById('sai-typing-typo').value) / 100;
+      const durationMinutes = parseFloat(el('sai-typing-duration').value) || 5;
+      const variability = parseInt(el('sai-typing-variability').value) / 100;
+      const typoRate = parseInt(el('sai-typing-typo').value) / 100;
 
-      document.getElementById('sai-typing-progress-section').style.display = 'block';
-      document.getElementById('sai-typing-start').disabled = true;
-      document.getElementById('sai-typing-pause').disabled = true;
-      document.getElementById('sai-typing-stop').disabled = true;
-      document.getElementById('sai-typing-progress-fill').style.width = '0%';
+      set('sai-typing-progress-section', 'style', el('sai-typing-progress-section')
+          ? Object.assign(el('sai-typing-progress-section').style, { display: 'block' }) && '' : '');
+      if (el('sai-typing-progress-section')) el('sai-typing-progress-section').style.display = 'block';
+      set('sai-typing-start', 'disabled', true);
+      set('sai-typing-pause', 'disabled', true);
+      set('sai-typing-stop',  'disabled', true);
+      if (el('sai-typing-progress-fill')) el('sai-typing-progress-fill').style.width = '0%';
 
-      // Countdown: give the user time to click into the Google Doc
       let count = 3;
-      const statsEl = document.getElementById('sai-typing-stats');
-      statsEl.textContent = `Click in your doc — starting in ${count}...`;
+      const updateStats = (msg) => { if (el('sai-typing-stats')) el('sai-typing-stats').textContent = msg; };
+      updateStats(`Click in your doc — starting in ${count}...`);
+
       const ticker = setInterval(() => {
         count--;
         if (count > 0) {
-          statsEl.textContent = `Click in your doc — starting in ${count}...`;
+          updateStats(`Click in your doc — starting in ${count}...`);
         } else {
           clearInterval(ticker);
-          statsEl.textContent = `0 / ${text.length} characters`;
-          document.getElementById('sai-typing-pause').disabled = false;
-          document.getElementById('sai-typing-stop').disabled = false;
+          updateStats(`0 / ${text.length} characters`);
+          set('sai-typing-pause', 'disabled', false);
+          set('sai-typing-stop',  'disabled', false);
 
           sim.start(
             text,
             { durationMinutes, variability, typoRate },
             (fraction, typed, total) => {
-              if (fraction === -1) {
-                document.getElementById('sai-typing-start').disabled = false;
-                document.getElementById('sai-typing-pause').disabled = true;
-                document.getElementById('sai-typing-stop').disabled = true;
-                return;
-              }
-              document.getElementById('sai-typing-progress-fill').style.width = (fraction * 100).toFixed(1) + '%';
-              statsEl.textContent = `${typed} / ${total} characters`;
+              if (fraction === -1) { resetButtons(); return; }
+              if (el('sai-typing-progress-fill'))
+                el('sai-typing-progress-fill').style.width = (fraction * 100).toFixed(1) + '%';
+              updateStats(`${typed} / ${total} characters`);
             },
-            (message) => {
-              // Step-by-step status — shown directly in the panel
-              statsEl.textContent = message;
-            }
+            (message) => updateStats(message)
           ).then(() => {
-            document.getElementById('sai-typing-start').disabled = false;
-            document.getElementById('sai-typing-pause').disabled = true;
-            document.getElementById('sai-typing-stop').disabled = true;
-            document.getElementById('sai-typing-pause').textContent = 'Pause';
-            document.getElementById('sai-typing-stats').textContent = `Done — ${text.length} / ${text.length} characters`;
+            resetButtons();
+            updateStats(`Done — ${text.length} / ${text.length} characters`);
           });
         }
       }, 1000);
