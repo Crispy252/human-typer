@@ -92,13 +92,26 @@ function isDocEditable() {
 // JS events which have isTrusted:false and are ignored.
 
 function bgSend(msg) {
-  return new Promise(resolve => chrome.runtime.sendMessage(msg, resolve));
+  return new Promise(resolve => {
+    chrome.runtime.sendMessage(msg, (response) => {
+      if (chrome.runtime.lastError) {
+        console.warn('[TypingSimulator] sendMessage error:', chrome.runtime.lastError.message);
+        // Retry once — service worker may have been sleeping
+        setTimeout(() => {
+          chrome.runtime.sendMessage(msg, resolve);
+        }, 500);
+      } else {
+        resolve(response);
+      }
+    });
+  });
 }
 
 async function cdpAttach() {
   const res = await bgSend({ type: 'DEBUGGER_ATTACH' });
   console.log('[TypingSimulator] cdpAttach result:', res);
-  return res && res.success;
+  if (!res) return { success: false, error: 'No response from background script' };
+  return res;
 }
 
 async function cdpDetach() {
@@ -236,9 +249,10 @@ class TypingSimulator {
 
     // Attach the Chrome Debugger — this is what makes typing actually work
     status('Attaching debugger...');
-    const attached = await cdpAttach();
-    if (!attached) {
-      status('ERROR: Failed to attach debugger. Close DevTools on this tab and reload the extension.');
+    const attachResult = await cdpAttach();
+    if (!attachResult.success) {
+      const reason = attachResult.error || 'unknown error';
+      status(`ERROR: ${reason}. Close DevTools on this tab, then reload the extension and try again.`);
       this.isRunning = false;
       if (onProgress) onProgress(-1, 0, text.length);
       return;
