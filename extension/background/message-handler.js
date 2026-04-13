@@ -116,6 +116,17 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.type === 'DEBUGGER_KEY_EVENT') {
     const tabId = sender.tab.id;
     chrome.debugger.sendCommand({ tabId }, 'Input.dispatchKeyEvent', request.params, () => {
+      if (chrome.runtime.lastError) {
+        console.error('DEBUGGER_KEY_EVENT error:', chrome.runtime.lastError.message);
+      }
+      sendResponse({ success: !chrome.runtime.lastError });
+    });
+    return true;
+  }
+
+  if (request.type === 'DEBUGGER_MOUSE_EVENT') {
+    const tabId = sender.tab.id;
+    chrome.debugger.sendCommand({ tabId }, 'Input.dispatchMouseEvent', request.params, () => {
       sendResponse({ success: !chrome.runtime.lastError });
     });
     return true;

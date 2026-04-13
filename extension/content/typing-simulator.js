@@ -87,9 +87,9 @@ function isDocEditable() {
 }
 
 // ─── Chrome Debugger API bridge ───────────────────────────────────────────────
-// All text injection goes through the background script, which uses the
-// Chrome Debugger Protocol (CDP). This creates trusted events that Google Docs
-// actually responds to.
+// All input goes through the background script via Chrome Debugger Protocol.
+// CDP events are trusted — Google Docs responds to them, unlike synthetic
+// JS events which have isTrusted:false and are ignored.
 
 function bgSend(msg) {
   return new Promise(resolve => chrome.runtime.sendMessage(msg, resolve));
@@ -97,6 +97,7 @@ function bgSend(msg) {
 
 async function cdpAttach() {
   const res = await bgSend({ type: 'DEBUGGER_ATTACH' });
+  console.log('[TypingSimulator] cdpAttach result:', res);
   return res && res.success;
 }
 
@@ -104,34 +105,78 @@ async function cdpDetach() {
   await bgSend({ type: 'DEBUGGER_DETACH' });
 }
 
-// Insert a printable character or string at the current cursor position.
-// Uses CDP Input.insertText — the cleanest API for IME / programmatic input.
-async function cdpInsertText(text) {
-  await bgSend({ type: 'DEBUGGER_INSERT_TEXT', text });
+// Returns the Windows Virtual Key code for a character.
+function vkCode(ch) {
+  const upper = ch.toUpperCase();
+  if (upper >= 'A' && upper <= 'Z') return upper.charCodeAt(0);  // 65-90
+  if (ch >= '0' && ch <= '9') return ch.charCodeAt(0);           // 48-57
+  if (ch === ' ') return 32;
+  // Special shifted chars — return the base key VK
+  const shiftMap = { '!':49,'@':50,'#':51,'$':52,'%':53,'^':54,'&':55,'*':56,'(':57,')':48,
+                     '_':189,'+':187,'{':219,'}':221,'|':220,':':186,'"':222,'<':188,'>':190,'?':191,'~':192 };
+  if (shiftMap[ch] !== undefined) return shiftMap[ch];
+  return ch.charCodeAt(0);
 }
 
-// Dispatch a special key (Backspace, Enter) via CDP Input.dispatchKeyEvent.
-async function cdpKey(key, code, keyCode) {
-  const params = {
-    type: 'keyDown',
-    key, code,
-    windowsVirtualKeyCode: keyCode,
-    nativeVirtualKeyCode: keyCode,
-  };
-  await bgSend({ type: 'DEBUGGER_KEY_EVENT', params });
-  await bgSend({ type: 'DEBUGGER_KEY_EVENT', params: { ...params, type: 'keyUp' } });
+// Whether a character needs the Shift modifier
+function needsShift(ch) {
+  if (ch >= 'A' && ch <= 'Z') return true;
+  return '!@#$%^&*()_+{}|:"<>?~'.includes(ch);
 }
 
+// Dispatch a printable character via the rawKeyDown → char → keyUp CDP sequence.
+// This goes through the browser's normal keyboard pipeline — Google Docs responds to it.
 async function dispatchChar(ch) {
-  await cdpInsertText(ch);
+  const vk = vkCode(ch);
+  const modifiers = needsShift(ch) ? 8 : 0; // 8 = Shift
+  const base = {
+    key: ch,
+    text: ch,
+    unmodifiedText: ch.toLowerCase(),
+    windowsVirtualKeyCode: vk,
+    nativeVirtualKeyCode: vk,
+    modifiers,
+    autoRepeat: false,
+    isKeypad: false,
+    isSystemKey: false,
+  };
+  await bgSend({ type: 'DEBUGGER_KEY_EVENT', params: { ...base, type: 'rawKeyDown' } });
+  await bgSend({ type: 'DEBUGGER_KEY_EVENT', params: { ...base, type: 'char' } });
+  await bgSend({ type: 'DEBUGGER_KEY_EVENT', params: { ...base, type: 'keyUp' } });
 }
 
 async function dispatchBackspace() {
-  await cdpKey('Backspace', 'Backspace', 8);
+  const base = { key: 'Backspace', windowsVirtualKeyCode: 8, nativeVirtualKeyCode: 8,
+                 modifiers: 0, autoRepeat: false, isKeypad: false, isSystemKey: false };
+  await bgSend({ type: 'DEBUGGER_KEY_EVENT', params: { ...base, type: 'rawKeyDown' } });
+  await bgSend({ type: 'DEBUGGER_KEY_EVENT', params: { ...base, type: 'keyUp' } });
 }
 
 async function dispatchEnter() {
-  await cdpKey('Enter', 'Enter', 13);
+  const base = { key: 'Enter', text: '\r', windowsVirtualKeyCode: 13, nativeVirtualKeyCode: 13,
+                 modifiers: 0, autoRepeat: false, isKeypad: false, isSystemKey: false };
+  await bgSend({ type: 'DEBUGGER_KEY_EVENT', params: { ...base, type: 'rawKeyDown' } });
+  await bgSend({ type: 'DEBUGGER_KEY_EVENT', params: { ...base, type: 'char' } });
+  await bgSend({ type: 'DEBUGGER_KEY_EVENT', params: { ...base, type: 'keyUp' } });
+}
+
+// Click the Google Docs canvas via CDP to ensure it has focus before typing.
+async function cdpFocusDoc() {
+  const canvas = document.querySelector('.kix-appview-editor') ||
+                 document.querySelector('.kix-canvas-tile-content');
+  let x, y;
+  if (canvas) {
+    const r = canvas.getBoundingClientRect();
+    x = Math.round(r.left + r.width / 2);
+    y = Math.round(r.top + r.height / 2);
+  } else {
+    x = Math.round(window.innerWidth / 2);
+    y = Math.round(window.innerHeight * 0.4);
+  }
+  const base = { x, y, button: 'left', clickCount: 1, modifiers: 0 };
+  await bgSend({ type: 'DEBUGGER_MOUSE_EVENT', params: { ...base, type: 'mousePressed', buttons: 1 } });
+  await bgSend({ type: 'DEBUGGER_MOUSE_EVENT', params: { ...base, type: 'mouseReleased', buttons: 0 } });
+  console.log('[TypingSimulator] cdpFocusDoc clicked at', x, y);
 }
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -190,6 +235,10 @@ class TypingSimulator {
       if (onProgress) onProgress(-1, 0, text.length); // signal error
       return;
     }
+
+    // Click the canvas to ensure Google Docs has keyboard focus
+    await cdpFocusDoc();
+    await sleep(150); // brief pause for Docs to register the click
 
     let burstRem = randomBurstLength();
     let i = 0;
