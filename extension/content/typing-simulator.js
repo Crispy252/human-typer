@@ -74,44 +74,57 @@ function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-function getDocsEditorTarget() {
-  return document.querySelector('.kix-appview-editor') ||
-         document.querySelector('[contenteditable="true"]') ||
-         document.querySelector('.kix-canvas') ||
-         document.body;
+/**
+ * Returns { target, doc } pointing at Google Docs' hidden keyboard input proxy.
+ * Docs routes all keyboard input through a textarea inside .docs-texteventtarget-iframe.
+ * Dispatching events there (and calling execCommand on its document) is the only
+ * reliable way to inject text programmatically.
+ */
+function getEditorContext() {
+  const iframe = document.querySelector('.docs-texteventtarget-iframe');
+  if (iframe && iframe.contentDocument && iframe.contentDocument.body) {
+    return { target: iframe.contentDocument.body, doc: iframe.contentDocument };
+  }
+  // Fallback for older Docs layouts
+  const el = document.querySelector('.kix-appview-editor') ||
+             document.querySelector('[contenteditable="true"]') ||
+             document.querySelector('.kix-canvas') ||
+             document.body;
+  return { target: el, doc: document };
 }
 
 function isDocEditable() {
   return !!(
-    document.querySelector('.kix-appview-editor') ||
-    document.querySelector('.docs-texteventtarget-iframe')
+    document.querySelector('.docs-texteventtarget-iframe') ||
+    document.querySelector('.kix-appview-editor')
   );
 }
 
-function focusEditor(targetEl) {
-  targetEl.click();
-  targetEl.focus();
+function focusEditor(ctx) {
+  ctx.target.click();
+  ctx.target.focus();
 }
 
-async function dispatchChar(ch, targetEl) {
+async function dispatchChar(ch, ctx) {
+  const { target, doc } = ctx;
   const code = ch.toUpperCase().charCodeAt(0);
 
-  targetEl.dispatchEvent(new KeyboardEvent('keydown', {
+  target.dispatchEvent(new KeyboardEvent('keydown', {
     key: ch, code: `Key${ch.toUpperCase()}`,
     keyCode: code, which: code,
     bubbles: true, cancelable: true, composed: true
   }));
 
-  targetEl.dispatchEvent(new KeyboardEvent('keypress', {
+  target.dispatchEvent(new KeyboardEvent('keypress', {
     key: ch, charCode: ch.charCodeAt(0),
     keyCode: code, which: code,
     bubbles: true, cancelable: true, composed: true
   }));
 
-  const success = document.execCommand('insertText', false, ch);
+  const success = doc.execCommand('insertText', false, ch);
   if (!success) {
     try {
-      targetEl.dispatchEvent(new TextEvent('textInput', {
+      target.dispatchEvent(new TextEvent('textInput', {
         bubbles: true, cancelable: true, data: ch
       }));
     } catch (_) {
@@ -119,33 +132,35 @@ async function dispatchChar(ch, targetEl) {
     }
   }
 
-  targetEl.dispatchEvent(new KeyboardEvent('keyup', {
+  target.dispatchEvent(new KeyboardEvent('keyup', {
     key: ch, code: `Key${ch.toUpperCase()}`,
     keyCode: code, which: code,
     bubbles: true, cancelable: true, composed: true
   }));
 }
 
-async function dispatchBackspace(targetEl) {
+async function dispatchBackspace(ctx) {
+  const { target, doc } = ctx;
   const opts = {
     key: 'Backspace', code: 'Backspace',
     keyCode: 8, which: 8,
     bubbles: true, cancelable: true, composed: true
   };
-  targetEl.dispatchEvent(new KeyboardEvent('keydown', opts));
-  document.execCommand('delete', false);
-  targetEl.dispatchEvent(new KeyboardEvent('keyup', opts));
+  target.dispatchEvent(new KeyboardEvent('keydown', opts));
+  doc.execCommand('delete', false);
+  target.dispatchEvent(new KeyboardEvent('keyup', opts));
 }
 
-async function dispatchEnter(targetEl) {
+async function dispatchEnter(ctx) {
+  const { target, doc } = ctx;
   const opts = {
     key: 'Enter', code: 'Enter',
     keyCode: 13, which: 13,
     bubbles: true, cancelable: true, composed: true
   };
-  targetEl.dispatchEvent(new KeyboardEvent('keydown', opts));
-  document.execCommand('insertParagraph', false);
-  targetEl.dispatchEvent(new KeyboardEvent('keyup', opts));
+  target.dispatchEvent(new KeyboardEvent('keydown', opts));
+  doc.execCommand('insertParagraph', false);
+  target.dispatchEvent(new KeyboardEvent('keyup', opts));
 }
 
 // Estimate total typing time for a given text and settings (used for pacing)
@@ -202,8 +217,8 @@ class TypingSimulator {
     const scale = targetMs / Math.max(estimated, 1);
     const scaledBase = roughBase * scale;
 
-    const target = getDocsEditorTarget();
-    focusEditor(target);
+    const ctx = getEditorContext();
+    focusEditor(ctx);
 
     let burstRem = randomBurstLength();
     let i = 0;
@@ -227,15 +242,15 @@ class TypingSimulator {
         const thinkMs = (300 + Math.random() * 1200) * scale;
         await sleep(thinkMs);
         burstRem = randomBurstLength();
-        // Re-focus after pause in case user clicked elsewhere
-        focusEditor(target);
+        // Re-focus after pause in case focus drifted
+        focusEditor(ctx);
       }
 
       const ch = text[i];
       const inBurst = burstRem > 0;
 
       if (ch === '\n') {
-        await dispatchEnter(target);
+        await dispatchEnter(ctx);
       } else if (ch === '\r') {
         // Skip carriage returns
       } else {
@@ -244,16 +259,16 @@ class TypingSimulator {
           const wrongChar = getAdjacentKey(ch);
           if (wrongChar) {
             // Type the wrong character
-            await dispatchChar(wrongChar, target);
+            await dispatchChar(wrongChar, ctx);
             await sleep(jitteredDelay(scaledBase * (inBurst ? 0.7 : 1.0), variability));
             // Notice after 0–4 more characters
             const noticeAfter = Math.floor(Math.random() * 5);
             pendingCorrection = { countdown: noticeAfter, correctBuffer: [ch] };
           } else {
-            await dispatchChar(ch, target);
+            await dispatchChar(ch, ctx);
           }
         } else {
-          await dispatchChar(ch, target);
+          await dispatchChar(ch, ctx);
         }
       }
 
@@ -265,12 +280,12 @@ class TypingSimulator {
           // Backspace over wrong char + anything typed after it
           const deleteCount = pendingCorrection.correctBuffer.length + 1;
           for (let b = 0; b < deleteCount; b++) {
-            await dispatchBackspace(target);
+            await dispatchBackspace(ctx);
             await sleep(jitteredDelay(scaledBase * 0.45, 0.3));
           }
           // Retype the correct characters
           for (const c of pendingCorrection.correctBuffer) {
-            await dispatchChar(c, target);
+            await dispatchChar(c, ctx);
             await sleep(jitteredDelay(scaledBase, variability));
           }
           pendingCorrection = null;

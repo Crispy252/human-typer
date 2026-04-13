@@ -463,7 +463,7 @@ ${slides.map((slide, i) => `Slide ${i + 1}: ${slide.title}\n${slide.content}`).j
       document.getElementById('sai-typo-val').textContent = e.target.value + '%';
     });
 
-    // Start button
+    // Start button — runs a 3-second countdown so the user can click into the doc
     document.getElementById('sai-typing-start').addEventListener('click', () => {
       const text = document.getElementById('sai-typing-text').value;
       if (!text.trim()) {
@@ -476,20 +476,36 @@ ${slides.map((slide, i) => `Slide ${i + 1}: ${slide.title}\n${slide.content}`).j
 
       document.getElementById('sai-typing-progress-section').style.display = 'block';
       document.getElementById('sai-typing-start').disabled = true;
-      document.getElementById('sai-typing-pause').disabled = false;
-      document.getElementById('sai-typing-stop').disabled = false;
+      document.getElementById('sai-typing-pause').disabled = true;
+      document.getElementById('sai-typing-stop').disabled = true;
       document.getElementById('sai-typing-progress-fill').style.width = '0%';
-      document.getElementById('sai-typing-stats').textContent = `0 / ${text.length} characters`;
 
-      sim.start(text, { durationMinutes, variability, typoRate }, (fraction, typed, total) => {
-        document.getElementById('sai-typing-progress-fill').style.width = (fraction * 100).toFixed(1) + '%';
-        document.getElementById('sai-typing-stats').textContent = `${typed} / ${total} characters`;
-      }).then(() => {
-        document.getElementById('sai-typing-start').disabled = false;
-        document.getElementById('sai-typing-pause').disabled = true;
-        document.getElementById('sai-typing-stop').disabled = true;
-        document.getElementById('sai-typing-pause').textContent = 'Pause';
-      });
+      // Countdown: give the user time to click into the Google Doc
+      let count = 3;
+      const statsEl = document.getElementById('sai-typing-stats');
+      statsEl.textContent = `Click in your doc — starting in ${count}...`;
+      const ticker = setInterval(() => {
+        count--;
+        if (count > 0) {
+          statsEl.textContent = `Click in your doc — starting in ${count}...`;
+        } else {
+          clearInterval(ticker);
+          statsEl.textContent = `0 / ${text.length} characters`;
+          document.getElementById('sai-typing-pause').disabled = false;
+          document.getElementById('sai-typing-stop').disabled = false;
+
+          sim.start(text, { durationMinutes, variability, typoRate }, (fraction, typed, total) => {
+            document.getElementById('sai-typing-progress-fill').style.width = (fraction * 100).toFixed(1) + '%';
+            document.getElementById('sai-typing-stats').textContent = `${typed} / ${total} characters`;
+          }).then(() => {
+            document.getElementById('sai-typing-start').disabled = false;
+            document.getElementById('sai-typing-pause').disabled = true;
+            document.getElementById('sai-typing-stop').disabled = true;
+            document.getElementById('sai-typing-pause').textContent = 'Pause';
+            document.getElementById('sai-typing-stats').textContent = `Done — ${text.length} / ${text.length} characters`;
+          });
+        }
+      }, 1000);
     });
 
     // Pause / Resume button
