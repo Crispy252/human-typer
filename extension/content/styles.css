@@ -166,3 +166,178 @@
   margin: 10px 0;
   font-size: 13px;
 }
+
+/* --- Typing Simulator Panel --- */
+.sai-typing-panel {
+  position: fixed;
+  top: 80px;
+  right: 20px;
+  width: 300px;
+  background: white;
+  border-radius: 10px;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.22);
+  z-index: 10001;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 13px;
+}
+
+.sai-typing-panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 14px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border-radius: 10px 10px 0 0;
+  cursor: grab;
+  user-select: none;
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.sai-typing-panel-header:active {
+  cursor: grabbing;
+}
+
+.sai-typing-panel-controls {
+  display: flex;
+  gap: 6px;
+}
+
+.sai-panel-minimize,
+.sai-typing-close {
+  background: rgba(255,255,255,0.25);
+  border: none;
+  color: white;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sai-panel-minimize:hover,
+.sai-typing-close:hover {
+  background: rgba(255,255,255,0.4);
+}
+
+.sai-typing-panel-body {
+  padding: 14px;
+}
+
+.sai-typing-field-group {
+  margin-bottom: 10px;
+}
+
+.sai-typing-field-inline {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.sai-typing-label {
+  display: block;
+  color: #555;
+  margin-bottom: 4px;
+  font-weight: 500;
+  font-size: 12px;
+}
+
+.sai-typing-textarea {
+  width: 100%;
+  height: 90px;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+  padding: 6px;
+  resize: vertical;
+  font-size: 12px;
+  box-sizing: border-box;
+  font-family: inherit;
+}
+
+.sai-typing-textarea:focus {
+  outline: none;
+  border-color: #667eea;
+}
+
+.sai-typing-number-input {
+  width: 70px;
+  padding: 5px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  text-align: center;
+  font-size: 13px;
+}
+
+.sai-typing-number-input:focus {
+  outline: none;
+  border-color: #667eea;
+}
+
+.sai-typing-slider {
+  width: 100%;
+  accent-color: #667eea;
+  cursor: pointer;
+}
+
+.sai-typing-progress-section {
+  margin-bottom: 10px;
+}
+
+.sai-typing-progress-bar {
+  height: 6px;
+  background: #e9ecef;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.sai-typing-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #667eea, #764ba2);
+  border-radius: 3px;
+  transition: width 0.3s ease;
+  width: 0%;
+}
+
+.sai-typing-stats {
+  font-size: 11px;
+  color: #888;
+  text-align: center;
+  margin-top: 4px;
+}
+
+.sai-typing-buttons {
+  display: flex;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.sai-btn-start,
+.sai-btn-pause,
+.sai-btn-stop {
+  flex: 1;
+  padding: 7px 0;
+  border: none;
+  border-radius: 5px;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 12px;
+  transition: opacity 0.2s;
+}
+
+.sai-btn-start { background: #28a745; color: white; }
+.sai-btn-pause { background: #ffc107; color: #333; }
+.sai-btn-stop  { background: #dc3545; color: white; }
+
+.sai-btn-start:disabled,
+.sai-btn-pause:disabled,
+.sai-btn-stop:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
