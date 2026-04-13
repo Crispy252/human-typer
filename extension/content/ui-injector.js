@@ -494,18 +494,24 @@ ${slides.map((slide, i) => `Slide ${i + 1}: ${slide.title}\n${slide.content}`).j
           document.getElementById('sai-typing-pause').disabled = false;
           document.getElementById('sai-typing-stop').disabled = false;
 
-          sim.start(text, { durationMinutes, variability, typoRate }, (fraction, typed, total) => {
-            if (fraction === -1) {
-              // Debugger attach failed
-              statsEl.textContent = 'Error: could not attach debugger. Try closing DevTools and reloading.';
-              document.getElementById('sai-typing-start').disabled = false;
-              document.getElementById('sai-typing-pause').disabled = true;
-              document.getElementById('sai-typing-stop').disabled = true;
-              return;
+          sim.start(
+            text,
+            { durationMinutes, variability, typoRate },
+            (fraction, typed, total) => {
+              if (fraction === -1) {
+                document.getElementById('sai-typing-start').disabled = false;
+                document.getElementById('sai-typing-pause').disabled = true;
+                document.getElementById('sai-typing-stop').disabled = true;
+                return;
+              }
+              document.getElementById('sai-typing-progress-fill').style.width = (fraction * 100).toFixed(1) + '%';
+              statsEl.textContent = `${typed} / ${total} characters`;
+            },
+            (message) => {
+              // Step-by-step status — shown directly in the panel
+              statsEl.textContent = message;
             }
-            document.getElementById('sai-typing-progress-fill').style.width = (fraction * 100).toFixed(1) + '%';
-            document.getElementById('sai-typing-stats').textContent = `${typed} / ${total} characters`;
-          }).then(() => {
+          ).then(() => {
             document.getElementById('sai-typing-start').disabled = false;
             document.getElementById('sai-typing-pause').disabled = true;
             document.getElementById('sai-typing-stop').disabled = true;

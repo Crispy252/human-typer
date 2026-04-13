@@ -89,15 +89,23 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   // --- Chrome Debugger API handlers for typing simulator ---
 
   if (request.type === 'DEBUGGER_ATTACH') {
-    const tabId = sender.tab.id;
+    const tabId = sender.tab && sender.tab.id;
+    if (!tabId) {
+      console.error('DEBUGGER_ATTACH: sender.tab.id is missing');
+      sendResponse({ success: false, error: 'No tab ID' });
+      return true;
+    }
+    console.log('DEBUGGER_ATTACH tabId:', tabId);
     if (debuggerTabs.has(tabId)) {
       sendResponse({ success: true });
       return true;
     }
     chrome.debugger.attach({ tabId }, '1.3', () => {
       if (chrome.runtime.lastError) {
+        console.error('debugger.attach error:', chrome.runtime.lastError.message);
         sendResponse({ success: false, error: chrome.runtime.lastError.message });
       } else {
+        console.log('Debugger attached to tab', tabId);
         debuggerTabs.add(tabId);
         sendResponse({ success: true });
       }

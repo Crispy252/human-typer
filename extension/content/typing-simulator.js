@@ -210,11 +210,17 @@ class TypingSimulator {
    * Start typing the given text over the specified duration.
    * @param {string} text - Text to type
    * @param {object} settings - { durationMinutes, variability (0-1), typoRate (0-1) }
-   * @param {function} onProgress - Callback: (fraction, charsTyped, total)
+   * @param {function} onProgress - Callback: (fraction, charsTyped, total) — fraction=-1 means error
+   * @param {function} onStatus   - Callback: (message) — shows step-by-step status in the panel
    * @returns {Promise<void>}
    */
-  async start(text, settings, onProgress) {
+  async start(text, settings, onProgress, onStatus) {
     if (this.isRunning) return;
+
+    const status = (msg) => {
+      console.log('[TypingSimulator]', msg);
+      if (onStatus) onStatus(msg);
+    };
 
     this.isRunning = true;
     this.isPaused = false;
@@ -229,16 +235,20 @@ class TypingSimulator {
     const scaledBase = roughBase * scale;
 
     // Attach the Chrome Debugger — this is what makes typing actually work
+    status('Attaching debugger...');
     const attached = await cdpAttach();
     if (!attached) {
+      status('ERROR: Failed to attach debugger. Close DevTools on this tab and reload the extension.');
       this.isRunning = false;
-      if (onProgress) onProgress(-1, 0, text.length); // signal error
+      if (onProgress) onProgress(-1, 0, text.length);
       return;
     }
+    status('Debugger attached. Clicking doc to set focus...');
 
     // Click the canvas to ensure Google Docs has keyboard focus
     await cdpFocusDoc();
-    await sleep(150); // brief pause for Docs to register the click
+    await sleep(200);
+    status(`Starting to type ${text.length} characters over ${durationMinutes} min...`);
 
     let burstRem = randomBurstLength();
     let i = 0;
