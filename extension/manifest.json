@@ -1,47 +1,27 @@
 {
   "manifest_version": 3,
-  "name": "Schoology AI Assistant",
+  "name": "Human Typer",
   "version": "1.0.0",
-  "description": "AI-powered assistant for Schoology assignments",
+  "description": "Types your text into Google Docs the way a human would — variable speed, realistic mistakes, and self-corrections.",
   "permissions": [
-    "nativeMessaging",
     "activeTab",
-    "storage",
     "debugger"
   ],
   "host_permissions": [
-    "*://*.schoology.com/*",
-    "*://docs.google.com/*",
-    "*://slides.google.com/*"
+    "*://docs.google.com/*"
   ],
   "background": {
     "service_worker": "background/message-handler.js"
   },
   "content_scripts": [
     {
-      "matches": ["*://*.schoology.com/*"],
+      "matches": ["*://docs.google.com/document/*"],
       "js": [
-        "content/schoology-detector.js",
-        "content/ui-injector.js"
-      ],
-      "css": ["content/styles.css"],
-      "run_at": "document_idle"
-    },
-    {
-      "matches": [
-        "*://docs.google.com/document/*",
-        "*://docs.google.com/presentation/*"
-      ],
-      "js": [
-        "content/google-docs-detector.js",
         "content/typing-simulator.js",
         "content/ui-injector.js"
       ],
       "css": ["content/styles.css"],
       "run_at": "document_idle"
     }
-  ],
-  "action": {
-    "default_popup": "popup/popup.html"
-  }
+  ]
 }

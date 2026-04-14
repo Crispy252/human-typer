@@ -95,7 +95,6 @@ function bgSend(msg) {
   return new Promise(resolve => {
     chrome.runtime.sendMessage(msg, (response) => {
       if (chrome.runtime.lastError) {
-        console.warn('[TypingSimulator] sendMessage error:', chrome.runtime.lastError.message);
         // Retry once — service worker may have been sleeping
         setTimeout(() => {
           chrome.runtime.sendMessage(msg, resolve);
@@ -109,7 +108,6 @@ function bgSend(msg) {
 
 async function cdpAttach() {
   const res = await bgSend({ type: 'DEBUGGER_ATTACH' });
-  console.log('[TypingSimulator] cdpAttach result:', res);
   if (!res) return { success: false, error: 'No response from background script' };
   return res;
 }
@@ -189,7 +187,6 @@ async function cdpFocusDoc() {
   const base = { x, y, button: 'left', clickCount: 1, modifiers: 0 };
   await bgSend({ type: 'DEBUGGER_MOUSE_EVENT', params: { ...base, type: 'mousePressed', buttons: 1 } });
   await bgSend({ type: 'DEBUGGER_MOUSE_EVENT', params: { ...base, type: 'mouseReleased', buttons: 0 } });
-  console.log('[TypingSimulator] cdpFocusDoc clicked at', x, y);
 }
 // ─────────────────────────────────────────────────────────────────────────────
 
