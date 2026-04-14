@@ -95,7 +95,6 @@ function bgSend(msg) {
   return new Promise(resolve => {
     chrome.runtime.sendMessage(msg, (response) => {
       if (chrome.runtime.lastError) {
-        console.warn('[TypingSimulator] sendMessage error:', chrome.runtime.lastError.message);
         // Retry once — service worker may have been sleeping
         setTimeout(() => {
           chrome.runtime.sendMessage(msg, resolve);
@@ -109,7 +108,6 @@ function bgSend(msg) {
 
 async function cdpAttach() {
   const res = await bgSend({ type: 'DEBUGGER_ATTACH' });
-  console.log('[TypingSimulator] cdpAttach result:', res);
   if (!res) return { success: false, error: 'No response from background script' };
   return res;
 }
@@ -189,7 +187,6 @@ async function cdpFocusDoc() {
   const base = { x, y, button: 'left', clickCount: 1, modifiers: 0 };
   await bgSend({ type: 'DEBUGGER_MOUSE_EVENT', params: { ...base, type: 'mousePressed', buttons: 1 } });
   await bgSend({ type: 'DEBUGGER_MOUSE_EVENT', params: { ...base, type: 'mouseReleased', buttons: 0 } });
-  console.log('[TypingSimulator] cdpFocusDoc clicked at', x, y);
 }
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -266,7 +263,11 @@ class TypingSimulator {
 
     let burstRem = randomBurstLength();
     let i = 0;
-    let pendingCorrection = null; // { countdown, correctBuffer }
+    // pendingCorrection = { charsLeft: number, toRetype: string[] }
+    //   charsLeft  — how many more chars to type before noticing the typo
+    //   toRetype   — [correct_typo_char, subsequent_char1, ...] to retype after backspacing
+    // The wrong char is always already in the doc; toRetype tracks what to put back.
+    let pendingCorrection = null;
     const startTime = Date.now();
 
     try {
@@ -279,6 +280,24 @@ class TypingSimulator {
         }
         if (this._stopRequested) break;
 
+        // ── Correct a pending typo BEFORE typing the next char ──────────────
+        // This fires when charsLeft reaches 0 (set at end of previous iteration).
+        if (pendingCorrection && pendingCorrection.charsLeft === 0) {
+          await sleep(jitteredDelay(scaledBase * 1.5, 0.3)); // pause: human notices mistake
+          // toRetype contains [typo_char, char1, char2, …] — each maps 1:1 to a char
+          // in the doc (wrong_char, char1, char2, …), so delete exactly toRetype.length chars.
+          for (let b = 0; b < pendingCorrection.toRetype.length; b++) {
+            await dispatchBackspace();
+            await sleep(jitteredDelay(scaledBase * 0.45, 0.3));
+          }
+          for (const c of pendingCorrection.toRetype) {
+            if (c === '\n') await dispatchEnter();
+            else await dispatchChar(c);
+            await sleep(jitteredDelay(scaledBase, variability));
+          }
+          pendingCorrection = null;
+        }
+
         // Burst transition — pause to simulate thinking
         if (burstRem === 0) {
           const thinkMs = (300 + Math.random() * 1200) * scale;
@@ -289,46 +308,35 @@ class TypingSimulator {
         const ch = text[i];
         const inBurst = burstRem > 0;
 
+        // ── Type the current character ───────────────────────────────────────
         if (ch === '\n') {
           await dispatchEnter();
-        } else if (ch === '\r') {
-          // skip
-        } else {
-          // Possibly inject a typo
-          if (!pendingCorrection && Math.random() < typoRate) {
-            const wrongChar = getAdjacentKey(ch);
-            if (wrongChar) {
-              await dispatchChar(wrongChar);
-              await sleep(jitteredDelay(scaledBase * (inBurst ? 0.7 : 1.0), variability));
-              const noticeAfter = Math.floor(Math.random() * 5);
-              pendingCorrection = { countdown: noticeAfter, correctBuffer: [ch] };
-            } else {
-              await dispatchChar(ch);
-            }
-          } else {
-            await dispatchChar(ch);
+          if (pendingCorrection) {
+            pendingCorrection.charsLeft--;
+            pendingCorrection.toRetype.push('\n');
           }
-        }
-
-        // Handle pending typo correction
-        if (pendingCorrection) {
-          if (pendingCorrection.countdown === 0) {
-            await sleep(jitteredDelay(scaledBase * 1.5, 0.3));
-            const deleteCount = pendingCorrection.correctBuffer.length + 1;
-            for (let b = 0; b < deleteCount; b++) {
-              await dispatchBackspace();
-              await sleep(jitteredDelay(scaledBase * 0.45, 0.3));
-            }
-            for (const c of pendingCorrection.correctBuffer) {
-              await dispatchChar(c);
-              await sleep(jitteredDelay(scaledBase, variability));
-            }
-            pendingCorrection = null;
+        } else if (ch === '\r') {
+          // skip carriage returns
+        } else if (!pendingCorrection && Math.random() < typoRate) {
+          // Inject a typo: type the wrong adjacent key, note correct char for later
+          const wrongChar = getAdjacentKey(ch);
+          if (wrongChar) {
+            await dispatchChar(wrongChar);
+            await sleep(jitteredDelay(scaledBase * (inBurst ? 0.7 : 1.0), variability));
+            // charsLeft = how many chars to type before noticing (0 = notice immediately next iter)
+            pendingCorrection = {
+              charsLeft: Math.floor(Math.random() * 5), // 0..4
+              toRetype: [ch],                            // ch is what belongs here
+            };
           } else {
-            pendingCorrection.countdown--;
-            if (ch !== '\n' && ch !== '\r') {
-              pendingCorrection.correctBuffer.push(ch);
-            }
+            await dispatchChar(ch); // no adjacent key, type correctly
+          }
+        } else {
+          await dispatchChar(ch);
+          // Track this char so it can be retyped during correction
+          if (pendingCorrection) {
+            pendingCorrection.charsLeft--;
+            pendingCorrection.toRetype.push(ch);
           }
         }
 

@@ -1,186 +1,60 @@
-# Schoology AI Assistant
+# Human Typer
 
-An AI-powered browser extension that integrates with Schoology to assist with assignments using OpenAI GPT-4.
+A Chrome extension that types your text into Google Docs the way a human would — character by character, over a duration you set, with realistic burst patterns, variable speed, and self-correcting typos.
 
-## ⚠️ Important Notice
+No API keys. No accounts. No data leaves your browser.
 
-This tool is designed for **educational assistance and research purposes**. Users must:
-- Check their institution's academic integrity policies before use
-- Use responsibly and ethically
-- Consider this as a learning aid, not a replacement for learning
-- Be aware that use may violate academic policies at some institutions
+---
 
-## Features
+## Install
 
-- **Quiz Auto-Completion**: Automatically answer multiple choice, true/false, and short answer questions
-- **Essay Generation**: Generate well-structured essays based on assignment prompts
-- **Discussion Posts**: Create thoughtful discussion board responses
-- **Smart Detection**: Automatically detects assignment types on Schoology pages
-- **Configurable**: Customize AI behavior and response settings
+1. Clone or download this repo.
+2. Go to `chrome://extensions/` and enable **Developer Mode** (top-right toggle).
+3. Click **Load unpacked** and select the `extension/` folder.
+4. Open any Google Doc you have edit access to — the **Human Typer** panel will appear in the top-right corner.
 
-## Architecture
+---
 
-The system uses a hybrid architecture:
-- **Browser Extension** (JavaScript): Frontend UI, DOM manipulation, and Schoology integration
-- **Python Backend**: AI processing using OpenAI GPT-4 via native messaging
+## How to use
 
-## Prerequisites
+1. Paste your text into the **Text to type** box.
+2. Set the **Duration** — how many minutes the typing should take.
+3. Adjust **Speed variability** and **Typo rate** to taste.
+4. Click **Start**. You have 3 seconds to click inside your Google Doc.
+5. Watch it type. Use **Pause** / **Resume** or **Stop** at any time.
 
-- Python 3.8 or higher
-- Google Chrome or Microsoft Edge browser
-- OpenAI API key ([Get one here](https://platform.openai.com/api-keys))
+---
 
-## Installation
+## Settings
 
-### Step 1: Install Python Dependencies
+| Setting | What it does |
+|---|---|
+| **Duration (minutes)** | Total time the typing session should last. The extension paces itself to finish within this window. |
+| **Speed variability** | How much the per-keystroke delay varies. 0% = perfectly even; 100% = very erratic. 40% is a natural default. |
+| **Typo rate** | Probability of hitting an adjacent wrong key. The extension notices the mistake after 0–4 characters and backspaces to fix it, just like a real person. 3% is subtle; 10%+ is noticeable. |
 
-```bash
-cd backend
-pip install -r requirements.txt
-```
+---
 
-### Step 2: Install Native Messaging Host
+## How it works
 
-```bash
-python install_native_host.py
-```
+Google Docs ignores synthetic browser events (`isTrusted: false`). Human Typer works around this by using the **Chrome Debugger Protocol (CDP)** to fire real, trusted `Input.dispatchKeyEvent` commands — the same mechanism Chrome DevTools uses internally. This is the only reliable way to inject keystrokes into Google Docs from an extension.
 
-This will:
-- Install the native messaging host manifest
-- Display the location of the manifest file
-- Show next steps for configuration
+**Typing rhythm:**
+- Characters are typed in short *bursts* (Poisson-distributed, ~10 chars each), separated by 300–1500 ms thinking pauses.
+- Per-keystroke delay is jittered using a CLT-approximated normal distribution.
+- A drift-correction loop tracks elapsed time vs. target time and adjusts delays to keep the session on schedule.
 
-### Step 3: Load Browser Extension
+**Typos:**
+- A wrong adjacent QWERTY key is typed, then after 0–4 more characters the extension pauses, backspaces to the mistake, and retypes the correct characters.
 
-1. Open Chrome and navigate to `chrome://extensions/`
-2. Enable **Developer mode** (toggle in top right)
-3. Click **Load unpacked**
-4. Select the `extension` directory
-5. Copy the **Extension ID** from the extension card
+**Permissions used:**
+- `activeTab` — to interact with the current tab.
+- `debugger` — to attach the Chrome Debugger Protocol and send trusted keypresses.
 
-### Step 4: Update Native Host Manifest
+> While the extension is typing, Chrome will display a **"Chrome is being debugged"** banner at the top of the page. This is normal and disappears when typing finishes or is stopped.
 
-1. Open the native host manifest file (path shown during installation)
-2. Replace `EXTENSION_ID_HERE` with your actual Extension ID
-3. Save the file
+---
 
-### Step 5: Configure API Key
+## Privacy
 
-1. Click the extension icon in Chrome
-2. Enter your OpenAI API key in the popup
-3. Click **Save Configuration**
-4. Verify that "Backend connected" shows in the popup
-
-## Usage
-
-1. Navigate to a Schoology assignment page (quiz, essay, or discussion)
-2. Wait for the page to fully load
-3. Look for the **AI Auto-Complete** button (gradient purple button)
-4. Click the button to process the assignment
-5. Review and verify the generated responses
-6. Submit when ready (the extension does not auto-submit)
-
-## Project Structure
-
-```
-.
-├── extension/              # Browser extension
-│   ├── manifest.json      # Extension configuration
-│   ├── background/        # Background service worker
-│   ├── content/           # Content scripts and styles
-│   └── popup/             # Extension popup UI
-├── backend/               # Python backend
-│   ├── native_host.py    # Native messaging host
-│   ├── ai_handler.py     # OpenAI integration
-│   ├── config.py         # Configuration
-│   └── requirements.txt  # Python dependencies
-├── install_native_host.py # Installation script
-└── README.md             # This file
-```
-
-## Configuration
-
-### Environment Variables
-
-Create a `.env` file in the `backend` directory to customize settings:
-
-```env
-# OpenAI Settings
-OPENAI_MODEL=gpt-4-turbo-preview
-OPENAI_TEMPERATURE=0.7
-MAX_TOKENS=2000
-
-# Response Settings
-MIN_ESSAY_WORDS=250
-MAX_ESSAY_WORDS=1000
-MIN_DISCUSSION_WORDS=100
-MAX_DISCUSSION_WORDS=300
-
-# Logging
-LOG_LEVEL=INFO
-LOG_FILE=schoology_ai.log
-```
-
-### Logs
-
-Logs are stored at `~/.schoology_ai/schoology_ai.log`
-
-## Troubleshooting
-
-### Extension can't connect to backend
-
-1. Verify the native host manifest is installed correctly
-2. Check that the Extension ID in the manifest matches your extension
-3. Ensure Python dependencies are installed
-4. Check logs at `~/.schoology_ai/schoology_ai.log`
-
-### API errors
-
-1. Verify your OpenAI API key is valid
-2. Check your OpenAI account has credits
-3. Review rate limits on your OpenAI account
-
-### Button doesn't appear
-
-1. Ensure you're on a Schoology assignment page
-2. Refresh the page
-3. Check browser console for errors (F12 → Console)
-
-## Development
-
-### Testing the Native Messaging Connection
-
-```bash
-cd backend
-python -c "from native_host import NativeMessagingHost; host = NativeMessagingHost(); print('Host initialized successfully')"
-```
-
-### Manual Testing
-
-1. Open the extension popup and check connection status
-2. Navigate to a test assignment on Schoology
-3. Open browser DevTools (F12) → Console tab
-4. Look for log messages from the extension
-
-## Uninstallation
-
-```bash
-python install_native_host.py uninstall
-```
-
-Then remove the extension from `chrome://extensions/`
-
-## Security & Privacy
-
-- API keys are stored locally in Chrome's storage
-- No data is sent to external servers except OpenAI's API
-- Assignment data is only used for generating responses
-- All communication between extension and backend is local
-
-## License
-
-This project is for educational purposes only. Use at your own risk.
-
-## Disclaimer
-
-The creators of this tool are not responsible for any academic integrity violations or consequences resulting from its use. Always comply with your institution's policies and use this tool responsibly.
+Human Typer runs entirely locally. It never makes network requests, never contacts external servers, and requires no API keys. Your text stays in your browser.
