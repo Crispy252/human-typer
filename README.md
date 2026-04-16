@@ -33,7 +33,7 @@ No API keys. No accounts. No data leaves your browser.
 | **Speed variability** | How much the per-keystroke delay varies. 0% = perfectly even; 100% = very erratic. 40% is a natural default. |
 | **Typo rate** | Probability of hitting an adjacent wrong key. The extension notices the mistake after 0–4 characters and backspaces to fix it, just like a real person. 3% is subtle; 10%+ is noticeable. |
 ---
-<blockquote class="imgur-embed-pub" lang="en" data-id="a/CW2BZRB" data-context="false" ><a href="//imgur.com/a/CW2BZRB"></a></blockquote><script async src="//s.imgur.com/min/embed.js" charset="utf-8"></script>
+<img width="2763" height="1341" alt="Image" src="https://github.com/user-attachments/assets/0bcbb764-ad0e-446a-8068-18fea4efcb60" />
 
 ## How it works
 
