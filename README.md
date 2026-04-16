@@ -32,6 +32,7 @@ No API keys. No accounts. No data leaves your browser.
 | **Duration (minutes)** | Total time the typing session should last. The extension paces itself to finish within this window. |
 | **Speed variability** | How much the per-keystroke delay varies. 0% = perfectly even; 100% = very erratic. 40% is a natural default. |
 | **Typo rate** | Probability of hitting an adjacent wrong key. The extension notices the mistake after 0–4 characters and backspaces to fix it, just like a real person. 3% is subtle; 10%+ is noticeable. |
+![Demo](ScreenRecording2026-04-15at8.54.49PM-ezgif.com-video-to-gif-converter.gif)
 
 ---
 
