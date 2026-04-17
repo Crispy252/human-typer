@@ -25,8 +25,6 @@ class UIInjector {
 
   injectTypingSimulatorPanel() {
     if (document.getElementById('sai-typing-panel')) return;
-    if (!window.location.href.includes('docs.google.com')) return;
-    if (window.isDocEditable && !window.isDocEditable()) return;
 
     const panel = document.createElement('div');
     panel.id = 'sai-typing-panel';
@@ -107,6 +105,21 @@ class UIInjector {
             <button class="sai-section-save-btn" id="sai-save-preset">+ Save Text</button>
           </div>
           <div class="sai-section-list" id="sai-presets-list"></div>
+        </div>
+
+        <!-- Speed presets -->
+        <div class="sai-typing-field-group">
+          <div class="sai-typing-field-inline" style="margin-bottom:6px">
+            <label class="sai-typing-label" style="margin:0">Speed</label>
+            <span class="sai-wpm-hint" id="sai-wpm-hint">~65 WPM</span>
+          </div>
+          <div class="sai-speed-pills" id="sai-speed-pills">
+            <button class="sai-speed-pill" data-preset="0">Slow</button>
+            <button class="sai-speed-pill" data-preset="1">Casual</button>
+            <button class="sai-speed-pill active" data-preset="2">Normal</button>
+            <button class="sai-speed-pill" data-preset="3">Quick</button>
+            <button class="sai-speed-pill" data-preset="4">Fast</button>
+          </div>
         </div>
 
         <!-- Duration -->
@@ -383,9 +396,55 @@ class UIInjector {
       set('sai-typing-pause', 'textContent', '⏸\u00a0Pause');
     };
 
+    // ── Speed presets ──
+    // Each preset sets variability + typo rate, and auto-calculates duration from WPM
+    // if there's already text loaded in the textarea.
+    const SPEED_PRESETS = [
+      { label: 'Slow',   wpm: 25,  variability: 20, typoRate: 2  },
+      { label: 'Casual', wpm: 45,  variability: 35, typoRate: 3  },
+      { label: 'Normal', wpm: 65,  variability: 45, typoRate: 4  },
+      { label: 'Quick',  wpm: 90,  variability: 60, typoRate: 6  },
+      { label: 'Fast',   wpm: 120, variability: 75, typoRate: 8  },
+    ];
+
+    const applyPreset = (idx) => {
+      const p = SPEED_PRESETS[idx];
+      // Update sliders + labels
+      set('sai-typing-variability', 'value', p.variability);
+      set('sai-variability-val', 'textContent', p.variability + '%');
+      set('sai-typing-typo', 'value', p.typoRate);
+      set('sai-typo-val', 'textContent', p.typoRate + '%');
+      // Auto-set duration based on text length and target WPM (5 chars ≈ 1 word)
+      const text = el('sai-typing-text') ? el('sai-typing-text').value : '';
+      if (text.length > 0) {
+        const mins = Math.max(0.5, +(text.length / (p.wpm * 5)).toFixed(1));
+        set('sai-typing-duration', 'value', mins);
+      }
+      // WPM hint
+      set('sai-wpm-hint', 'textContent', `~${p.wpm} WPM`);
+      // Active pill
+      document.querySelectorAll('.sai-speed-pill').forEach((btn, i) => {
+        btn.classList.toggle('active', i === idx);
+      });
+    };
+
+    document.querySelectorAll('.sai-speed-pill').forEach((btn) => {
+      btn.addEventListener('click', () => applyPreset(parseInt(btn.dataset.preset, 10)));
+    });
+
+    // Keep WPM hint live as user edits text
+    el('sai-typing-text').addEventListener('input', () => {
+      const activeIdx = [...document.querySelectorAll('.sai-speed-pill')]
+        .findIndex(b => b.classList.contains('active'));
+      if (activeIdx >= 0) applyPreset(activeIdx);
+    });
+
     // ── Slider labels ──
     el('sai-typing-variability').addEventListener('input', (e) => {
       set('sai-variability-val', 'textContent', e.target.value + '%');
+      // Deactivate preset pills when user manually adjusts (they no longer match)
+      document.querySelectorAll('.sai-speed-pill').forEach(b => b.classList.remove('active'));
+      set('sai-wpm-hint', 'textContent', '');
     });
     el('sai-typing-typo').addEventListener('input', (e) => {
       set('sai-typo-val', 'textContent', e.target.value + '%');
@@ -641,6 +700,23 @@ class UIInjector {
 // ── Bootstrap ────────────────────────────────────────────────────────────────
 
 const uiInjector = new UIInjector();
+
+// Handle keyboard shortcut and context-menu trigger from background script.
+// If the panel isn't open yet, inject it first, then fire Start.
+chrome.runtime.onMessage.addListener((request) => {
+  if (request.type !== 'SHORTCUT_START') return;
+  if (!document.getElementById('sai-typing-panel')) {
+    uiInjector.injectTypingSimulatorPanel();
+    // Panel renders asynchronously; wait one frame before clicking Start
+    setTimeout(() => {
+      const btn = document.getElementById('sai-typing-start');
+      if (btn && !btn.disabled) btn.click();
+    }, 150);
+  } else {
+    const btn = document.getElementById('sai-typing-start');
+    if (btn && !btn.disabled) btn.click();
+  }
+});
 
 function initialize() {
   if (document.readyState === 'loading') {

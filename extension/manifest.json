@@ -1,23 +1,45 @@
 {
   "manifest_version": 3,
   "name": "Human Typer",
-  "version": "1.1.0",
-  "description": "Types your text into Google Docs the way a human would — variable speed, realistic mistakes, and self-corrections.",
+  "version": "1.2.0",
+  "description": "Types your text into Google Docs, Canvas, Blackboard and more — realistic speed, self-correcting typos, stealth mode.",
   "permissions": [
     "activeTab",
     "debugger",
-    "storage"
+    "storage",
+    "contextMenus"
   ],
   "host_permissions": [
     "*://docs.google.com/*",
+    "*://*.instructure.com/*",
+    "*://*.blackboard.com/*",
+    "*://*.moodlecloud.com/*",
+    "*://*.moodle.org/*",
     "https://api.gumroad.com/*"
   ],
+  "commands": {
+    "start-typing": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+Y",
+        "mac": "Command+Shift+Y"
+      },
+      "description": "Open Human Typer and start typing"
+    }
+  },
   "background": {
     "service_worker": "background/message-handler.js"
   },
   "content_scripts": [
     {
-      "matches": ["*://docs.google.com/document/*"],
+      "matches": [
+        "*://docs.google.com/document/*",
+        "*://docs.google.com/presentation/*",
+        "*://docs.google.com/forms/*",
+        "*://*.instructure.com/*",
+        "*://*.blackboard.com/*",
+        "*://*.moodlecloud.com/*",
+        "*://*.moodle.org/*"
+      ],
       "js": [
         "content/typing-simulator.js",
         "content/ui-injector.js"

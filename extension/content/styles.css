@@ -286,6 +286,45 @@
   text-align: right;
 }
 
+/* ── Speed presets ───────────────────────────────────────────────────────── */
+
+.sai-speed-pills {
+  display: flex;
+  gap: 4px;
+}
+
+.sai-speed-pill {
+  flex: 1;
+  padding: 5px 0;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  letter-spacing: 0.01em;
+}
+
+.sai-speed-pill:hover {
+  border-color: rgba(139, 92, 246, 0.4);
+  color: var(--text);
+}
+
+.sai-speed-pill.active {
+  background: rgba(139, 92, 246, 0.18);
+  border-color: rgba(139, 92, 246, 0.5);
+  color: var(--accent);
+}
+
+.sai-wpm-hint {
+  font-size: 10px;
+  color: var(--accent);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
 /* ── Stealth Mode row ────────────────────────────────────────────────────── */
 
 .sai-stealth-row {

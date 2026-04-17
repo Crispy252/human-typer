@@ -157,10 +157,13 @@ async function dispatchChar(ch) {
 }
 
 async function dispatchBackspace() {
+  // Non-printable keys must use 'keyDown' (not 'rawKeyDown').
+  // rawKeyDown is the pre-char phase for printable keys — Google Docs processes
+  // Backspace from the keydown handler, which rawKeyDown does NOT trigger.
   const base = { key: 'Backspace', code: 'Backspace', windowsVirtualKeyCode: 8, nativeVirtualKeyCode: 8,
                  modifiers: 0, autoRepeat: false, isKeypad: false, isSystemKey: false };
-  await bgSend({ type: 'DEBUGGER_KEY_EVENT', params: { ...base, type: 'rawKeyDown' } });
-  await sleep(30); // brief gap so Docs registers the key before release
+  await bgSend({ type: 'DEBUGGER_KEY_EVENT', params: { ...base, type: 'keyDown' } });
+  await sleep(32); // Docs needs a moment between keyDown and keyUp to register the deletion
   await bgSend({ type: 'DEBUGGER_KEY_EVENT', params: { ...base, type: 'keyUp' } });
 }
 
@@ -172,17 +175,27 @@ async function dispatchEnter() {
   await bgSend({ type: 'DEBUGGER_KEY_EVENT', params: { ...base, type: 'keyUp' } });
 }
 
-// Click the Google Docs canvas via CDP to ensure it has focus before typing.
+// Click the target editor via CDP to ensure it has focus before typing.
+// Works on Google Docs, Canvas, Blackboard, and any site with a focused editable element.
 async function cdpFocusDoc() {
-  const canvas = document.querySelector('.kix-appview-editor') ||
-                 document.querySelector('.kix-canvas-tile-content');
+  let target =
+    // Google Docs canvas (must be first — Docs ignores clicks on the wrong element)
+    document.querySelector('.kix-appview-editor') ||
+    document.querySelector('.kix-canvas-tile-content') ||
+    // Generic: whatever has keyboard focus right now
+    (document.activeElement !== document.body ? document.activeElement : null) ||
+    // Fallback: first visible contenteditable or textarea on the page
+    document.querySelector('[contenteditable="true"]') ||
+    document.querySelector('textarea') ||
+    document.querySelector('input[type="text"]');
+
   let x, y;
-  if (canvas) {
-    const r = canvas.getBoundingClientRect();
-    x = Math.round(r.left + r.width / 2);
-    y = Math.round(r.top + r.height / 2);
+  if (target) {
+    const r = target.getBoundingClientRect();
+    x = Math.round(r.left + r.width  / 2);
+    y = Math.round(r.top  + r.height / 2);
   } else {
-    x = Math.round(window.innerWidth / 2);
+    x = Math.round(window.innerWidth  / 2);
     y = Math.round(window.innerHeight * 0.4);
   }
   const base = { x, y, button: 'left', clickCount: 1, modifiers: 0 };

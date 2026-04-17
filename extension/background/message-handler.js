@@ -3,9 +3,40 @@
  * Bridges content script requests to the Chrome Debugger Protocol (CDP).
  * CDP events are browser-trusted — Google Docs responds to them, unlike
  * synthetic JS events (isTrusted: false) which Docs ignores.
+ *
+ * Also handles:
+ *  - Keyboard shortcut (Ctrl+Shift+Y / Cmd+Shift+Y) → SHORTCUT_START
+ *  - Right-click context menu on editable fields → SHORTCUT_START
+ *  - License verification via Gumroad API
  */
 
 const debuggerTabs = new Set();
+
+// ── Context menu ──────────────────────────────────────────────────────────────
+chrome.runtime.onInstalled.addListener(() => {
+  chrome.contextMenus.create({
+    id: 'human-typer-start',
+    title: 'Type with Human Typer ✦',
+    contexts: ['editable'],
+  });
+});
+
+chrome.contextMenus.onClicked.addListener((info, tab) => {
+  if (info.menuItemId === 'human-typer-start' && tab && tab.id) {
+    chrome.tabs.sendMessage(tab.id, { type: 'SHORTCUT_START' });
+  }
+});
+
+// ── Keyboard shortcut ─────────────────────────────────────────────────────────
+chrome.commands.onCommand.addListener((command) => {
+  if (command === 'start-typing') {
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+      if (tabs[0] && tabs[0].id) {
+        chrome.tabs.sendMessage(tabs[0].id, { type: 'SHORTCUT_START' });
+      }
+    });
+  }
+});
 
 chrome.debugger.onDetach.addListener((source) => {
   debuggerTabs.delete(source.tabId);
