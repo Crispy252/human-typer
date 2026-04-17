@@ -173,3 +173,309 @@
   opacity: 0.4;
   cursor: not-allowed;
 }
+
+/* ── Pro badge ────────────────────────────────────────────────────────────── */
+
+.sai-header-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.sai-pro-badge {
+  background: #ffd700;
+  color: #5a3e00;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  padding: 2px 5px;
+  border-radius: 3px;
+  vertical-align: middle;
+  line-height: 1;
+}
+
+/* ── Session counter bar (Free) ───────────────────────────────────────────── */
+
+.sai-session-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  background: #f8f4ff;
+  border-bottom: 1px solid #e8e0f7;
+  font-size: 11px;
+  color: #666;
+}
+
+.sai-upgrade-link {
+  margin-left: auto;
+  background: none;
+  border: 1px solid #764ba2;
+  color: #764ba2;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  white-space: nowrap;
+}
+
+.sai-upgrade-link:hover {
+  background: #764ba2;
+  color: white;
+}
+
+/* ── Character counter (Free) ─────────────────────────────────────────────── */
+
+.sai-char-counter {
+  font-size: 11px;
+  color: #999;
+  margin-top: 3px;
+  text-align: right;
+}
+
+/* ── Presets section (Pro) ────────────────────────────────────────────────── */
+
+.sai-presets-section {
+  margin-bottom: 10px;
+  border: 1px solid #ede8f8;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.sai-presets-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 8px;
+  background: #f8f4ff;
+  border-bottom: 1px solid #ede8f8;
+}
+
+.sai-save-preset-btn {
+  background: none;
+  border: 1px solid #667eea;
+  color: #667eea;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.sai-save-preset-btn:hover {
+  background: #667eea;
+  color: white;
+}
+
+.sai-presets-list {
+  max-height: 100px;
+  overflow-y: auto;
+}
+
+.sai-presets-empty {
+  padding: 8px;
+  font-size: 11px;
+  color: #aaa;
+  text-align: center;
+}
+
+.sai-preset-item {
+  display: flex;
+  align-items: center;
+  border-bottom: 1px solid #f3f0fb;
+}
+
+.sai-preset-item:last-child {
+  border-bottom: none;
+}
+
+.sai-preset-load {
+  flex: 1;
+  text-align: left;
+  background: none;
+  border: none;
+  padding: 6px 8px;
+  font-size: 12px;
+  color: #444;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sai-preset-load:hover {
+  background: #f3f0fb;
+  color: #667eea;
+}
+
+.sai-preset-delete {
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  color: #bbb;
+  font-size: 14px;
+  padding: 0 8px;
+  cursor: pointer;
+  line-height: 1;
+}
+
+.sai-preset-delete:hover {
+  color: #dc3545;
+}
+
+/* ── Paywall modal ────────────────────────────────────────────────────────── */
+
+/* Sits as an absolute child of .sai-typing-panel (position:fixed),
+   so it covers the full panel surface. */
+.sai-paywall-modal {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.97);
+  border-radius: 10px;
+  z-index: 20;
+  display: flex;
+  align-items: flex-start;
+  overflow-y: auto;
+}
+
+.sai-paywall-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px 18px 16px;
+  width: 100%;
+  text-align: center;
+}
+
+.sai-paywall-icon {
+  font-size: 22px;
+  color: #764ba2;
+  margin-bottom: 6px;
+}
+
+.sai-paywall-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #333;
+  margin-bottom: 6px;
+}
+
+.sai-paywall-reason {
+  font-size: 12px;
+  color: #777;
+  margin-bottom: 10px;
+  line-height: 1.4;
+}
+
+.sai-paywall-features {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 14px;
+  text-align: left;
+  width: 100%;
+}
+
+.sai-paywall-features li {
+  font-size: 12px;
+  color: #555;
+  padding: 3px 0;
+}
+
+.sai-paywall-cta {
+  display: block;
+  width: 100%;
+  padding: 9px 0;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  font-size: 13px;
+  font-weight: 700;
+  text-align: center;
+  text-decoration: none;
+  border-radius: 6px;
+  margin-bottom: 10px;
+  transition: opacity 0.2s;
+}
+
+.sai-paywall-cta:hover {
+  opacity: 0.88;
+}
+
+.sai-paywall-key-toggle {
+  background: none;
+  border: none;
+  color: #667eea;
+  font-size: 11px;
+  cursor: pointer;
+  text-decoration: underline;
+  padding: 0;
+  margin-bottom: 8px;
+}
+
+.sai-paywall-key-form {
+  width: 100%;
+  margin-bottom: 8px;
+}
+
+.sai-license-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 6px 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 12px;
+  margin-bottom: 6px;
+  font-family: monospace;
+}
+
+.sai-license-input:focus {
+  outline: none;
+  border-color: #667eea;
+}
+
+.sai-license-verify-btn {
+  width: 100%;
+  padding: 7px 0;
+  background: #28a745;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  font-weight: 600;
+  font-size: 12px;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.sai-license-verify-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.sai-license-status {
+  font-size: 11px;
+  margin-top: 5px;
+  min-height: 14px;
+  color: #888;
+}
+
+.sai-license-status.sai-license-ok  { color: #28a745; font-weight: 600; }
+.sai-license-status.sai-license-err { color: #dc3545; }
+
+.sai-paywall-dismiss {
+  background: none;
+  border: none;
+  color: #aaa;
+  font-size: 11px;
+  cursor: pointer;
+  padding: 0;
+  margin-top: 4px;
+}
+
+.sai-paywall-dismiss:hover {
+  color: #888;
+}

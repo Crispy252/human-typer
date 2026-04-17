@@ -5,10 +5,12 @@
   "description": "Types your text into Google Docs the way a human would — variable speed, realistic mistakes, and self-corrections.",
   "permissions": [
     "activeTab",
-    "debugger"
+    "debugger",
+    "storage"
   ],
   "host_permissions": [
-    "*://docs.google.com/*"
+    "*://docs.google.com/*",
+    "https://api.gumroad.com/*"
   ],
   "background": {
     "service_worker": "background/message-handler.js"

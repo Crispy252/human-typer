@@ -381,5 +381,44 @@ class TypingSimulator {
   }
 }
 
+// ─── Session / paywall helpers ───────────────────────────────────────────────
+// State lives in chrome.storage.local so it persists across tabs and reloads.
+// Schema: { sessionsToday, lastResetDate, isPro, licenseKey, savedPresets }
+
+/**
+ * Check whether the current user is allowed to start a new session.
+ * Pro users: always allowed.
+ * Free users: allowed when sessionsToday < 3 (resets daily).
+ * @returns {Promise<{ allowed: boolean, isPro: boolean, sessionsToday: number }>}
+ */
+async function checkSessionAllowed() {
+  return new Promise(resolve => {
+    chrome.storage.local.get(['sessionsToday', 'lastResetDate', 'isPro'], (data) => {
+      if (data.isPro) return resolve({ allowed: true, isPro: true, sessionsToday: -1 });
+      const today = new Date().toISOString().slice(0, 10);
+      const sessionsToday = (data.lastResetDate === today) ? (data.sessionsToday || 0) : 0;
+      resolve({ allowed: sessionsToday < 3, isPro: false, sessionsToday });
+    });
+  });
+}
+
+/**
+ * Increment the session counter for today.
+ * Resets the count automatically when the date changes.
+ * @returns {Promise<void>}
+ */
+async function incrementSession() {
+  return new Promise(resolve => {
+    const today = new Date().toISOString().slice(0, 10);
+    chrome.storage.local.get(['sessionsToday', 'lastResetDate'], (data) => {
+      const sessionsToday = (data.lastResetDate === today) ? (data.sessionsToday || 0) : 0;
+      chrome.storage.local.set({ sessionsToday: sessionsToday + 1, lastResetDate: today }, resolve);
+    });
+  });
+}
+// ─────────────────────────────────────────────────────────────────────────────
+
 window.typingSimulator = new TypingSimulator();
 window.isDocEditable = isDocEditable;
+window.checkSessionAllowed = checkSessionAllowed;
+window.incrementSession = incrementSession;

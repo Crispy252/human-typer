@@ -50,6 +50,32 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     return true;
   }
 
+  if (request.type === 'LICENSE_VERIFY') {
+    // TODO: Replace YOUR_PRODUCT_ID with your Gumroad product_id
+    // Find it in your Gumroad dashboard → the product URL slug
+    // e.g. if your product is at gumroad.com/l/human-typer, the product_id is "human-typer"
+    const GUMROAD_PRODUCT_ID = 'YOUR_PRODUCT_ID'; // TODO: set your Gumroad product_id
+    fetch('https://api.gumroad.com/v2/licenses/verify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        product_id: GUMROAD_PRODUCT_ID,
+        license_key: request.licenseKey,
+        increment_uses_count: 'false',
+      }),
+    })
+      .then(r => r.json())
+      .then(data => {
+        if (data.success) {
+          sendResponse({ valid: true });
+        } else {
+          sendResponse({ valid: false, error: data.message || 'Invalid license key.' });
+        }
+      })
+      .catch(err => sendResponse({ valid: false, error: err.message }));
+    return true;
+  }
+
   if (request.type === 'DEBUGGER_DETACH') {
     const tabId = sender.tab.id;
     if (!debuggerTabs.has(tabId)) {
