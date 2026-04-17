@@ -157,9 +157,10 @@ async function dispatchChar(ch) {
 }
 
 async function dispatchBackspace() {
-  const base = { key: 'Backspace', windowsVirtualKeyCode: 8, nativeVirtualKeyCode: 8,
+  const base = { key: 'Backspace', code: 'Backspace', windowsVirtualKeyCode: 8, nativeVirtualKeyCode: 8,
                  modifiers: 0, autoRepeat: false, isKeypad: false, isSystemKey: false };
   await bgSend({ type: 'DEBUGGER_KEY_EVENT', params: { ...base, type: 'rawKeyDown' } });
+  await sleep(30); // brief gap so Docs registers the key before release
   await bgSend({ type: 'DEBUGGER_KEY_EVENT', params: { ...base, type: 'keyUp' } });
 }
 
@@ -236,7 +237,7 @@ class TypingSimulator {
     this.isPaused = false;
     this._stopRequested = false;
 
-    const { durationMinutes, variability = 0.4, typoRate = 0.03 } = settings;
+    const { durationMinutes, variability = 0.4, typoRate = 0.03, stealthMode = false } = settings;
     const targetMs = durationMinutes * 60 * 1000;
     const roughBase = targetMs / text.length;
 
@@ -283,17 +284,17 @@ class TypingSimulator {
         // ── Correct a pending typo BEFORE typing the next char ──────────────
         // This fires when charsLeft reaches 0 (set at end of previous iteration).
         if (pendingCorrection && pendingCorrection.charsLeft === 0) {
-          await sleep(jitteredDelay(scaledBase * 1.5, 0.3)); // pause: human notices mistake
+          await sleep(jitteredDelay(400, 0.3));  // pause: human notices the mistake (~400 ms)
           // toRetype contains [typo_char, char1, char2, …] — each maps 1:1 to a char
           // in the doc (wrong_char, char1, char2, …), so delete exactly toRetype.length chars.
           for (let b = 0; b < pendingCorrection.toRetype.length; b++) {
             await dispatchBackspace();
-            await sleep(jitteredDelay(scaledBase * 0.45, 0.3));
+            await sleep(jitteredDelay(90, 0.3)); // ~90 ms between backspaces
           }
           for (const c of pendingCorrection.toRetype) {
             if (c === '\n') await dispatchEnter();
             else await dispatchChar(c);
-            await sleep(jitteredDelay(scaledBase, variability));
+            await sleep(jitteredDelay(60, variability)); // ~60 ms retyping speed
           }
           pendingCorrection = null;
         }
@@ -344,6 +345,18 @@ class TypingSimulator {
         i++;
 
         if (onProgress) onProgress(i / text.length, i, text.length);
+
+        // ── Stealth mode: extra pauses to evade pattern detection ────────────
+        if (stealthMode) {
+          // After paragraph breaks: simulate reading what was just typed (0.8–2.8 s)
+          if (ch === '\n') {
+            await sleep(800 + Math.random() * 2000);
+          }
+          // Random micro-hesitation within a burst (~6% chance, 100–450 ms)
+          if (inBurst && Math.random() < 0.06) {
+            await sleep(100 + Math.random() * 350);
+          }
+        }
 
         // Drift-corrected delay
         const elapsed = Date.now() - startTime;
