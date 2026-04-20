@@ -7,10 +7,13 @@
  * Tiers: free → starter ($2.99/mo) → pro ($4.99/mo) → max ($9.99/mo)
  */
 
-// TODO: Replace each URL with your Gumroad product page URL once created
-const GUMROAD_STARTER_URL = 'https://gumroad.com'; // TODO: starter product URL
-const GUMROAD_PRO_URL     = 'https://gumroad.com'; // TODO: pro product URL
-const GUMROAD_MAX_URL     = 'https://gumroad.com'; // TODO: max product URL
+// TODO: Replace with your Gumroad membership product URL
+// e.g. https://yourname.gumroad.com/l/phantom
+// Gumroad will show all 3 tiers on the same page — no need for separate URLs
+const GUMROAD_URL         = 'https://gumroad.com'; // TODO: set your Gumroad product URL
+const GUMROAD_STARTER_URL = GUMROAD_URL;
+const GUMROAD_PRO_URL     = GUMROAD_URL;
+const GUMROAD_MAX_URL     = GUMROAD_URL;
 
 const FREE_SESSION_LIMIT = 3;
 const FREE_CHAR_LIMIT    = 500;

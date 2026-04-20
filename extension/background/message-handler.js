@@ -82,47 +82,40 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   }
 
   if (request.type === 'LICENSE_VERIFY') {
-    // One entry per tier — set product_id after creating each Gumroad product
-    const TIERS = [
-      { productId: 'YOUR_STARTER_PRODUCT_ID', tier: 'starter' }, // TODO
-      { productId: 'YOUR_PRO_PRODUCT_ID',     tier: 'pro'     }, // TODO
-      { productId: 'YOUR_MAX_PRODUCT_ID',     tier: 'max'     }, // TODO
-    ];
+    // Single Gumroad membership product with 3 tiers.
+    // Name your tiers exactly "Starter", "Pro", and "Max" in Gumroad.
+    const GUMROAD_PRODUCT_ID = 'YOUR_PRODUCT_ID'; // TODO: replace with your Gumroad product_id
 
-    // Try each tier's product ID until one verifies successfully
-    const tryTier = (index) => {
-      if (index >= TIERS.length) {
-        sendResponse({ valid: false, error: 'Invalid license key. Check your key and try again.' });
-        return;
-      }
-      const { productId, tier } = TIERS[index];
-      fetch('https://api.gumroad.com/v2/licenses/verify', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: new URLSearchParams({
-          product_id: productId,
-          license_key: request.licenseKey,
-          increment_uses_count: 'false',
-        }),
+    // Maps Gumroad tier name → internal tier string (case-insensitive)
+    const TIER_MAP = { starter: 'starter', pro: 'pro', max: 'max' };
+
+    fetch('https://api.gumroad.com/v2/licenses/verify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        product_id: GUMROAD_PRODUCT_ID,
+        license_key: request.licenseKey,
+        increment_uses_count: 'false',
+      }),
+    })
+      .then(r => r.json())
+      .then(data => {
+        if (!data.success) {
+          sendResponse({ valid: false, error: data.message || 'Invalid license key.' });
+          return;
+        }
+        const p = data.purchase || {};
+        if (p.cancelled || p.chargebacked || p.subscription_cancelled_at || p.subscription_failed_at) {
+          sendResponse({ valid: false, error: 'Your Phantom subscription is no longer active. Resubscribe at gumroad.com to continue.' });
+          return;
+        }
+        // Detect tier from Gumroad membership tier name
+        // Gumroad returns this in purchase.tier.name or purchase.plan_name
+        const rawTier = (p.tier && p.tier.name) || p.plan_name || '';
+        const tier = TIER_MAP[rawTier.toLowerCase()] || 'starter';
+        sendResponse({ valid: true, tier });
       })
-        .then(r => r.json())
-        .then(data => {
-          if (!data.success) {
-            // Key doesn't belong to this tier — try the next
-            tryTier(index + 1);
-            return;
-          }
-          const p = data.purchase || {};
-          if (p.cancelled || p.chargebacked || p.subscription_cancelled_at || p.subscription_failed_at) {
-            sendResponse({ valid: false, error: 'Your Phantom subscription is no longer active. Resubscribe at gumroad.com to continue.' });
-            return;
-          }
-          sendResponse({ valid: true, tier });
-        })
-        .catch(() => tryTier(index + 1));
-    };
-
-    tryTier(0);
+      .catch(err => sendResponse({ valid: false, error: err.message }));
     return true;
   }
 
