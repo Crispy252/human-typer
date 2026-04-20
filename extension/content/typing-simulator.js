@@ -529,11 +529,13 @@ class TypingSimulator {
  */
 async function checkSessionAllowed() {
   return new Promise(resolve => {
-    chrome.storage.local.get(['sessionsToday', 'lastResetDate', 'isPro'], (data) => {
-      if (data.isPro) return resolve({ allowed: true, isPro: true, sessionsToday: -1 });
+    chrome.storage.local.get(['sessionsToday', 'lastResetDate', 'tier', 'isPro'], (data) => {
+      // Backward compat: old installs used isPro:true
+      const tier = data.tier || (data.isPro ? 'pro' : 'free');
+      if (tier !== 'free') return resolve({ allowed: true, tier, sessionsToday: -1 });
       const today = new Date().toISOString().slice(0, 10);
       const sessionsToday = (data.lastResetDate === today) ? (data.sessionsToday || 0) : 0;
-      resolve({ allowed: sessionsToday < 3, isPro: false, sessionsToday });
+      resolve({ allowed: sessionsToday < 3, tier: 'free', sessionsToday });
     });
   });
 }
