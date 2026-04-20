@@ -24,6 +24,9 @@
   top: 80px;
   right: 20px;
   width: 320px;
+  max-height: calc(100vh - 100px);
+  display: flex;
+  flex-direction: column;
   background: var(--bg);
   border-radius: 12px;
   box-shadow:
@@ -178,6 +181,18 @@
 
 .sai-typing-panel-body {
   padding: 14px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.sai-typing-panel-body::-webkit-scrollbar { width: 4px; }
+.sai-typing-panel-body::-webkit-scrollbar-track { background: transparent; }
+.sai-typing-panel-body::-webkit-scrollbar-thumb {
+  background: rgba(139, 92, 246, 0.3);
+  border-radius: 2px;
+}
+.sai-typing-panel-body::-webkit-scrollbar-thumb:hover {
+  background: rgba(139, 92, 246, 0.6);
 }
 
 /* ── Labels ──────────────────────────────────────────────────────────────── */
