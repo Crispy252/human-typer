@@ -109,9 +109,11 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
           sendResponse({ valid: false, error: 'Your Phantom subscription is no longer active. Resubscribe at gumroad.com to continue.' });
           return;
         }
-        // Detect tier from Gumroad membership tier name
-        // Gumroad returns this in purchase.tier.name or purchase.plan_name
-        const rawTier = (p.tier && p.tier.name) || p.plan_name || '';
+        // Detect tier from Gumroad response.
+        // Gumroad returns the membership tier in purchase.variants as "(Max)" / "(Pro)" / "(Starter)"
+        // Also check plan_name and tier.name as fallbacks.
+        const variantTier = p.variants ? p.variants.replace(/[()]/g, '').trim() : '';
+        const rawTier = variantTier || (p.tier && p.tier.name) || p.plan_name || '';
         const tier = TIER_MAP[rawTier.toLowerCase()] || 'starter';
         sendResponse({ valid: true, tier });
       })
