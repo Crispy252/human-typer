@@ -175,33 +175,6 @@ async function dispatchEnter() {
   await bgSend({ type: 'DEBUGGER_KEY_EVENT', params: { ...base, type: 'keyUp' } });
 }
 
-// Click the target editor via CDP to ensure it has focus before typing.
-// Works on Google Docs, Canvas, Blackboard, and any site with a focused editable element.
-async function cdpFocusDoc() {
-  let target =
-    // Google Docs canvas (must be first — Docs ignores clicks on the wrong element)
-    document.querySelector('.kix-appview-editor') ||
-    document.querySelector('.kix-canvas-tile-content') ||
-    // Generic: whatever has keyboard focus right now
-    (document.activeElement !== document.body ? document.activeElement : null) ||
-    // Fallback: first visible contenteditable or textarea on the page
-    document.querySelector('[contenteditable="true"]') ||
-    document.querySelector('textarea') ||
-    document.querySelector('input[type="text"]');
-
-  let x, y;
-  if (target) {
-    const r = target.getBoundingClientRect();
-    x = Math.round(r.left + r.width  / 2);
-    y = Math.round(r.top  + r.height / 2);
-  } else {
-    x = Math.round(window.innerWidth  / 2);
-    y = Math.round(window.innerHeight * 0.4);
-  }
-  const base = { x, y, button: 'left', clickCount: 1, modifiers: 0 };
-  await bgSend({ type: 'DEBUGGER_MOUSE_EVENT', params: { ...base, type: 'mousePressed', buttons: 1 } });
-  await bgSend({ type: 'DEBUGGER_MOUSE_EVENT', params: { ...base, type: 'mouseReleased', buttons: 0 } });
-}
 // ─────────────────────────────────────────────────────────────────────────────
 
 // Estimate total typing time for pacing (used to compute the scaling factor)
@@ -268,11 +241,9 @@ class TypingSimulator {
       if (onProgress) onProgress(-1, 0, text.length);
       return;
     }
-    status('Debugger attached. Clicking doc to set focus...');
-
-    // Click the canvas to ensure Google Docs has keyboard focus
-    await cdpFocusDoc();
-    await sleep(200);
+    // Cursor position is already set — the UI countdown told the user to click
+    // in the doc before typing begins. Do NOT CDP-click here; that would move
+    // the cursor to the canvas center, overriding where the user positioned it.
     status(`Starting to type ${text.length} characters over ${durationMinutes} min...`);
 
     let burstRem = randomBurstLength();
