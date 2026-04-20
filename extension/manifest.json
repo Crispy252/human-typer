@@ -4,7 +4,6 @@
   "version": "1.3.0",
   "description": "Invisible typing. Human results. Types your text into Google Docs, Canvas, Blackboard and more — realistic speed, self-correcting typos, fatigue curve, stealth mode.",
   "permissions": [
-    "activeTab",
     "debugger",
     "storage",
     "contextMenus"
