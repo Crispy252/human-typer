@@ -1,4 +1,4 @@
-/* Human Typer — Panel Styles v2 (Dark Theme) */
+/* Phantom — Panel Styles v1.3.0 (Dark Theme) */
 
 /* ── Design tokens (scoped to panel so they don't leak into Google Docs) ── */
 .sai-typing-panel {
@@ -788,3 +788,166 @@
 }
 
 .sai-paywall-dismiss:hover { color: var(--muted); }
+
+/* ── Focus mode button (in header) ──────────────────────────────────────────── */
+
+.sai-panel-focus {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #8892aa;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 11px;
+  line-height: 1;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s, color 0.15s;
+}
+
+.sai-panel-focus:hover {
+  background: rgba(99, 102, 241, 0.3);
+  color: #fff;
+}
+
+/* ── Focus Mode overlay ──────────────────────────────────────────────────────── */
+
+.sai-focus-overlay {
+  position: absolute;
+  inset: 0;
+  border-radius: 12px;
+  background: var(--bg);
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+}
+
+.sai-focus-ring {
+  position: relative;
+  width: 110px;
+  height: 110px;
+}
+
+.sai-focus-svg {
+  width: 110px;
+  height: 110px;
+  transform: rotate(-90deg); /* start arc from top */
+}
+
+.sai-focus-track {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.07);
+  stroke-width: 4;
+}
+
+.sai-focus-fill {
+  fill: none;
+  stroke: url(#phantomGrad);
+  stroke-width: 4;
+  stroke-linecap: round;
+  stroke-dasharray: 113.1; /* 2π×18 */
+  stroke-dashoffset: 113.1;
+  transition: stroke-dashoffset 0.4s ease;
+}
+
+/* Inline gradient def — added via JS since SVG defs live in the SVG element */
+.sai-focus-pct {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  font-weight: 800;
+  color: #fff;
+  letter-spacing: -0.02em;
+}
+
+.sai-focus-exit {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--accent);
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s, color 0.15s;
+}
+
+.sai-focus-exit:hover {
+  background: rgba(139, 92, 246, 0.25);
+  color: #fff;
+}
+
+/* Shrink panel shell in focus mode */
+.sai-typing-panel.sai-focus-active {
+  width: 140px;
+  height: 180px;
+  border-radius: 16px;
+}
+
+/* ── Resume banner ───────────────────────────────────────────────────────────── */
+
+.sai-resume-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 12px;
+  background: rgba(99, 102, 241, 0.1);
+  border-bottom: 1px solid rgba(99, 102, 241, 0.2);
+  font-size: 11px;
+}
+
+.sai-resume-text {
+  color: var(--muted);
+  flex: 1;
+  line-height: 1.3;
+}
+
+.sai-resume-actions {
+  display: flex;
+  gap: 5px;
+  flex-shrink: 0;
+}
+
+.sai-resume-yes {
+  background: rgba(99, 102, 241, 0.18);
+  border: 1px solid rgba(99, 102, 241, 0.4);
+  color: #a5b4fc;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.15s;
+  white-space: nowrap;
+}
+
+.sai-resume-yes:hover {
+  background: rgba(99, 102, 241, 0.32);
+  color: #fff;
+}
+
+.sai-resume-no {
+  background: none;
+  border: none;
+  color: var(--dimmed);
+  font-size: 13px;
+  cursor: pointer;
+  padding: 2px 4px;
+  line-height: 1;
+  transition: color 0.15s;
+}
+
+.sai-resume-no:hover { color: var(--danger); }

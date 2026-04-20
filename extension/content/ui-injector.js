@@ -1,12 +1,13 @@
 /**
- * Human Typer — UI Injector v2 (Dark Theme)
- * Injects the floating panel into Google Docs.
- * Handles freemium limits, paywall, Pro presets, typing profiles, and stealth mode.
+ * Phantom — UI Injector v1.3.0
+ * Injects the floating Phantom panel into Google Docs, Canvas, Blackboard, and Moodle.
+ * Handles freemium limits, paywall, Pro presets, typing profiles, stealth mode,
+ * fatigue curve, smart error zones, focus mode, and resume from interruption.
  */
 
 // TODO: Replace with your Gumroad product URL after creating the product.
-// gumroad.com → New Product → $3 → type "License Key" → name "Human Typer Pro"
-// Then paste the product page URL here (e.g. https://yourname.gumroad.com/l/human-typer)
+// gumroad.com → New Product → $3 → type "License Key" → name "Phantom Pro"
+// Then paste the product page URL here (e.g. https://yourname.gumroad.com/l/phantom)
 const GUMROAD_PRODUCT_URL = 'https://gumroad.com'; // TODO: set your Gumroad product URL
 
 const FREE_SESSION_LIMIT = 3;
@@ -16,9 +17,13 @@ const PRO_PROFILE_LIMIT  = 5;
 
 class UIInjector {
   constructor() {
-    this._isPro       = false;
-    this._isMinimized = false;
-    this._stealthMode = false; // live toggle state (not persisted between sessions)
+    this._isPro           = false;
+    this._isMinimized     = false;
+    this._isFocusMode     = false;
+    this._stealthMode     = false;
+    this._fatigueCurve    = false;
+    this._smartErrorZones = false;
+    this._pendingResume   = null; // set when user clicks Resume banner
   }
 
   // ── Inject ────────────────────────────────────────────────────────────────
@@ -31,11 +36,30 @@ class UIInjector {
     panel.className = 'sai-typing-panel';
     panel.innerHTML = `
 
+      <!-- ── Focus Mode overlay (replaces panel when active) ─────────── -->
+      <div class="sai-focus-overlay" id="sai-focus-overlay" style="display:none">
+        <div class="sai-focus-ring" id="sai-focus-ring">
+          <svg viewBox="0 0 44 44" class="sai-focus-svg">
+            <defs>
+              <linearGradient id="phantomGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%"   stop-color="#6366f1"/>
+                <stop offset="55%"  stop-color="#8b5cf6"/>
+                <stop offset="100%" stop-color="#a855f7"/>
+              </linearGradient>
+            </defs>
+            <circle cx="22" cy="22" r="18" class="sai-focus-track"/>
+            <circle cx="22" cy="22" r="18" class="sai-focus-fill" id="sai-focus-arc"/>
+          </svg>
+          <span class="sai-focus-pct" id="sai-focus-pct">0%</span>
+        </div>
+        <button class="sai-focus-exit" id="sai-focus-exit" title="Exit focus mode">✦</button>
+      </div>
+
       <!-- ── Paywall modal ────────────────────────────────────────────── -->
       <div class="sai-paywall-modal" id="sai-paywall-modal" style="display:none">
         <div class="sai-paywall-content">
           <div class="sai-paywall-glow">✦</div>
-          <div class="sai-paywall-title">Upgrade to Human Typer Pro</div>
+          <div class="sai-paywall-title">Upgrade to Phantom Pro</div>
           <div class="sai-paywall-reason" id="sai-paywall-reason"></div>
           <ul class="sai-paywall-features">
             <li><span class="sai-paywall-check">✦</span> Unlimited sessions per day</li>
@@ -43,6 +67,8 @@ class UIInjector {
             <li><span class="sai-paywall-check">✦</span> 5 saved text presets</li>
             <li><span class="sai-paywall-check">✦</span> 5 typing profiles (save settings)</li>
             <li><span class="sai-paywall-check">✦</span> Stealth Mode — anti-detection pauses</li>
+            <li><span class="sai-paywall-check">✦</span> Fatigue Curve — naturally slows over time</li>
+            <li><span class="sai-paywall-check">✦</span> Smart Error Zones — realistic typo patterns</li>
           </ul>
           <a class="sai-paywall-cta" href="${GUMROAD_PRODUCT_URL}" target="_blank" rel="noopener">
             Unlock Pro — $3
@@ -60,16 +86,26 @@ class UIInjector {
         </div>
       </div>
 
+      <!-- ── Resume banner (hidden until a saved session is detected) ── -->
+      <div class="sai-resume-banner" id="sai-resume-banner" style="display:none">
+        <span class="sai-resume-text" id="sai-resume-text">Resume where you left off?</span>
+        <div class="sai-resume-actions">
+          <button class="sai-resume-yes" id="sai-resume-yes">↺ Resume</button>
+          <button class="sai-resume-no"  id="sai-resume-no">✕</button>
+        </div>
+      </div>
+
       <!-- ── Header ───────────────────────────────────────────────────── -->
       <div class="sai-typing-panel-header" id="sai-typing-panel-drag">
         <span class="sai-header-title">
           <span class="sai-header-icon">✦</span>
-          Human Typer
+          Phantom
           <span class="sai-pro-badge" id="sai-pro-badge" style="display:none">PRO</span>
         </span>
         <div class="sai-typing-panel-controls">
+          <button class="sai-panel-focus"    id="sai-typing-focus"    title="Focus mode">◎</button>
           <button class="sai-panel-minimize" id="sai-typing-minimize" title="Minimize">&#8722;</button>
-          <button class="sai-typing-close"   id="sai-typing-close"   title="Close">&#215;</button>
+          <button class="sai-typing-close"   id="sai-typing-close"    title="Close">&#215;</button>
         </div>
       </div>
 
@@ -167,6 +203,34 @@ class UIInjector {
           </div>
         </div>
 
+        <!-- Fatigue Curve (Pro) -->
+        <div class="sai-stealth-row">
+          <div class="sai-stealth-info">
+            <span class="sai-stealth-label">Fatigue Curve</span>
+            <span class="sai-stealth-desc">Speed naturally decays over session</span>
+          </div>
+          <div class="sai-stealth-right">
+            <span class="sai-stealth-lock-badge" id="sai-fatigue-lock">✦ PRO</span>
+            <button class="sai-toggle disabled" id="sai-fatigue-toggle" aria-pressed="false">
+              <span class="sai-toggle-thumb"></span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Smart Error Zones (Pro) -->
+        <div class="sai-stealth-row">
+          <div class="sai-stealth-info">
+            <span class="sai-stealth-label">Smart Error Zones</span>
+            <span class="sai-stealth-desc">Typos cluster mid-word, like real typing</span>
+          </div>
+          <div class="sai-stealth-right">
+            <span class="sai-stealth-lock-badge" id="sai-smart-errors-lock">✦ PRO</span>
+            <button class="sai-toggle disabled" id="sai-smart-errors-toggle" aria-pressed="false">
+              <span class="sai-toggle-thumb"></span>
+            </button>
+          </div>
+        </div>
+
         <!-- Typing Profiles (Pro) -->
         <div class="sai-section-card" id="sai-profiles-section" style="display:none">
           <div class="sai-section-card-header">
@@ -222,25 +286,33 @@ class UIInjector {
     const el = (id) => document.getElementById(id);
 
     if (isPro) {
-      if (el('sai-pro-badge'))        el('sai-pro-badge').style.display        = 'inline-block';
-      if (el('sai-session-bar'))      el('sai-session-bar').style.display      = 'none';
-      if (el('sai-char-counter'))     el('sai-char-counter').style.display     = 'none';
-      if (el('sai-presets-section'))  el('sai-presets-section').style.display  = 'block';
-      if (el('sai-profiles-section')) el('sai-profiles-section').style.display = 'block';
-      // Unlock stealth mode toggle
-      if (el('sai-stealth-toggle'))   el('sai-stealth-toggle').classList.remove('disabled');
-      if (el('sai-stealth-lock'))     el('sai-stealth-lock').style.display     = 'none';
+      if (el('sai-pro-badge'))           el('sai-pro-badge').style.display           = 'inline-block';
+      if (el('sai-session-bar'))         el('sai-session-bar').style.display         = 'none';
+      if (el('sai-char-counter'))        el('sai-char-counter').style.display        = 'none';
+      if (el('sai-presets-section'))     el('sai-presets-section').style.display     = 'block';
+      if (el('sai-profiles-section'))    el('sai-profiles-section').style.display    = 'block';
+      // Unlock Pro toggles
+      if (el('sai-stealth-toggle'))      el('sai-stealth-toggle').classList.remove('disabled');
+      if (el('sai-stealth-lock'))        el('sai-stealth-lock').style.display        = 'none';
+      if (el('sai-fatigue-toggle'))      el('sai-fatigue-toggle').classList.remove('disabled');
+      if (el('sai-fatigue-lock'))        el('sai-fatigue-lock').style.display        = 'none';
+      if (el('sai-smart-errors-toggle')) el('sai-smart-errors-toggle').classList.remove('disabled');
+      if (el('sai-smart-errors-lock'))   el('sai-smart-errors-lock').style.display   = 'none';
       this._renderPresets(presets);
       this._renderProfiles(profiles);
     } else {
-      if (el('sai-pro-badge'))        el('sai-pro-badge').style.display        = 'none';
-      if (el('sai-session-bar'))      el('sai-session-bar').style.display      = 'flex';
-      if (el('sai-char-counter'))     el('sai-char-counter').style.display     = 'block';
-      if (el('sai-presets-section'))  el('sai-presets-section').style.display  = 'none';
-      if (el('sai-profiles-section')) el('sai-profiles-section').style.display = 'none';
-      // Keep stealth toggle locked
-      if (el('sai-stealth-toggle'))   el('sai-stealth-toggle').classList.add('disabled');
-      if (el('sai-stealth-lock'))     el('sai-stealth-lock').style.display     = '';
+      if (el('sai-pro-badge'))           el('sai-pro-badge').style.display           = 'none';
+      if (el('sai-session-bar'))         el('sai-session-bar').style.display         = 'flex';
+      if (el('sai-char-counter'))        el('sai-char-counter').style.display        = 'block';
+      if (el('sai-presets-section'))     el('sai-presets-section').style.display     = 'none';
+      if (el('sai-profiles-section'))    el('sai-profiles-section').style.display    = 'none';
+      // Keep Pro toggles locked
+      if (el('sai-stealth-toggle'))      el('sai-stealth-toggle').classList.add('disabled');
+      if (el('sai-stealth-lock'))        el('sai-stealth-lock').style.display        = '';
+      if (el('sai-fatigue-toggle'))      el('sai-fatigue-toggle').classList.add('disabled');
+      if (el('sai-fatigue-lock'))        el('sai-fatigue-lock').style.display        = '';
+      if (el('sai-smart-errors-toggle')) el('sai-smart-errors-toggle').classList.add('disabled');
+      if (el('sai-smart-errors-lock'))   el('sai-smart-errors-lock').style.display   = '';
       this._updateSessionPips(sessionsToday);
       const ta = el('sai-typing-text');
       this._updateCharCount(ta ? ta.value.length : 0);
@@ -338,13 +410,16 @@ class UIInjector {
     set('sai-variability-val',    'textContent', (profile.variability ?? 40) + '%');
     set('sai-typo-val',           'textContent', (profile.typoRate    ?? 3)  + '%');
 
-    const stealth = !!profile.stealthMode;
-    this._stealthMode = stealth;
-    const toggle = el('sai-stealth-toggle');
-    if (toggle) {
-      toggle.classList.toggle('active', stealth);
-      toggle.setAttribute('aria-pressed', String(stealth));
-    }
+    const applyToggle = (id, val) => {
+      const t = el(id);
+      if (t) { t.classList.toggle('active', val); t.setAttribute('aria-pressed', String(val)); }
+    };
+    this._stealthMode     = !!profile.stealthMode;
+    this._fatigueCurve    = !!profile.fatigueCurve;
+    this._smartErrorZones = !!profile.smartErrorZones;
+    applyToggle('sai-stealth-toggle',      this._stealthMode);
+    applyToggle('sai-fatigue-toggle',      this._fatigueCurve);
+    applyToggle('sai-smart-errors-toggle', this._smartErrorZones);
   }
 
   // ── Utilities ─────────────────────────────────────────────────────────────
@@ -455,16 +530,87 @@ class UIInjector {
       this._updateCharCount(e.target.value.length);
     });
 
-    // ── Stealth mode toggle ──
+    // ── Pro toggle helper ──
+    const makeProToggle = (btnId, paywall, getProp, setProp) => {
+      el(btnId).addEventListener('click', () => {
+        if (!this._isPro) { this._showPaywall(paywall); return; }
+        this[setProp] = !this[getProp]();
+        el(btnId).classList.toggle('active', this[setProp]);
+        el(btnId).setAttribute('aria-pressed', String(this[setProp]));
+      });
+    };
+
+    // Stealth Mode
     el('sai-stealth-toggle').addEventListener('click', () => {
       if (!this._isPro) {
         this._showPaywall('Stealth Mode is a Pro feature. Upgrade to unlock anti-detection micro-pauses.');
         return;
       }
       this._stealthMode = !this._stealthMode;
-      const toggle = el('sai-stealth-toggle');
-      toggle.classList.toggle('active', this._stealthMode);
-      toggle.setAttribute('aria-pressed', String(this._stealthMode));
+      const t = el('sai-stealth-toggle');
+      t.classList.toggle('active', this._stealthMode);
+      t.setAttribute('aria-pressed', String(this._stealthMode));
+    });
+
+    // Fatigue Curve
+    el('sai-fatigue-toggle').addEventListener('click', () => {
+      if (!this._isPro) {
+        this._showPaywall('Fatigue Curve is a Pro feature. Typing naturally slows over long sessions — much harder to detect.');
+        return;
+      }
+      this._fatigueCurve = !this._fatigueCurve;
+      const t = el('sai-fatigue-toggle');
+      t.classList.toggle('active', this._fatigueCurve);
+      t.setAttribute('aria-pressed', String(this._fatigueCurve));
+    });
+
+    // Smart Error Zones
+    el('sai-smart-errors-toggle').addEventListener('click', () => {
+      if (!this._isPro) {
+        this._showPaywall('Smart Error Zones is a Pro feature. Typos cluster in the middle of words, just like real human errors.');
+        return;
+      }
+      this._smartErrorZones = !this._smartErrorZones;
+      const t = el('sai-smart-errors-toggle');
+      t.classList.toggle('active', this._smartErrorZones);
+      t.setAttribute('aria-pressed', String(this._smartErrorZones));
+    });
+
+    // ── Focus Mode ──
+    el('sai-typing-focus').addEventListener('click', () => this._enterFocusMode());
+    el('sai-focus-exit').addEventListener('click',   () => this._exitFocusMode());
+
+    // ── Resume banner ──
+    el('sai-resume-yes').addEventListener('click', async () => {
+      const saved = await window.loadResumeState();
+      if (!saved) return;
+      el('sai-resume-banner').style.display = 'none';
+      // Pre-fill the text and fire start with resumeFrom
+      const ta = el('sai-typing-text');
+      if (ta) { ta.value = saved.text; this._updateCharCount(saved.text.length); }
+      this._pendingResume = saved;
+      // Automatically click Start so the countdown begins
+      const startBtn = el('sai-typing-start');
+      if (startBtn && !startBtn.disabled) startBtn.click();
+    });
+    el('sai-resume-no').addEventListener('click', () => {
+      el('sai-resume-banner').style.display = 'none';
+      window.clearResumeState();
+    });
+
+    // ── Check for a saved resume state on load ──
+    window.loadResumeState().then(saved => {
+      if (!saved) return;
+      // Only offer resume if the save is less than 24 hours old
+      const ageMs = Date.now() - (saved.timestamp || 0);
+      if (ageMs > 86400000) { window.clearResumeState(); return; }
+      const remaining = saved.text.length - saved.resumeFrom;
+      const el2 = (id) => document.getElementById(id);
+      if (el2('sai-resume-text'))
+        el2('sai-resume-text').textContent =
+          `Resume? ${remaining.toLocaleString()} chars left from last session`;
+      if (el2('sai-resume-banner'))
+        el2('sai-resume-banner').style.display = 'flex';
     });
 
     // ── Start ──
@@ -507,6 +653,16 @@ class UIInjector {
       const variability     = parseInt(el('sai-typing-variability').value, 10) / 100;
       const typoRate        = parseInt(el('sai-typing-typo').value, 10) / 100;
       const stealthMode     = this._stealthMode;
+      const fatigueCurve    = this._fatigueCurve;
+      const smartErrorZones = this._smartErrorZones;
+
+      // Check if we're resuming an interrupted session
+      const resume    = this._pendingResume || null;
+      const resumeFrom = resume ? (resume.resumeFrom || 0) : 0;
+      this._pendingResume = null;
+
+      const settings = { durationMinutes, variability, typoRate, stealthMode,
+                         fatigueCurve, smartErrorZones, resumeFrom };
 
       if (el('sai-typing-progress-section')) el('sai-typing-progress-section').style.display = 'block';
       set('sai-typing-start', 'disabled', true);
@@ -514,32 +670,46 @@ class UIInjector {
       set('sai-typing-stop',  'disabled', true);
       if (el('sai-typing-progress-fill')) el('sai-typing-progress-fill').style.width = '0%';
 
+      // Show pre-filled progress when resuming
+      if (resumeFrom > 0 && el('sai-typing-progress-fill')) {
+        el('sai-typing-progress-fill').style.width = (resumeFrom / text.length * 100).toFixed(1) + '%';
+      }
+
       let count = 3;
-      updateStats(`Click in your doc — starting in ${count}…`);
+      const countMsg = resumeFrom > 0
+        ? `Resuming — click in your doc — starting in ${count}…`
+        : `Click in your doc — starting in ${count}…`;
+      updateStats(countMsg);
 
       const ticker = setInterval(() => {
         count--;
         if (count > 0) {
-          updateStats(`Click in your doc — starting in ${count}…`);
+          updateStats(resumeFrom > 0
+            ? `Resuming — click in your doc — starting in ${count}…`
+            : `Click in your doc — starting in ${count}…`);
         } else {
           clearInterval(ticker);
-          updateStats(`0 / ${text.length} characters`);
+          updateStats(`${resumeFrom.toLocaleString()} / ${text.length.toLocaleString()} characters`);
           set('sai-typing-pause', 'disabled', false);
           set('sai-typing-stop',  'disabled', false);
 
           sim.start(
             text,
-            { durationMinutes, variability, typoRate, stealthMode },
+            settings,
             (fraction, typed, total) => {
               if (fraction === -1) { resetButtons(); return; }
+              const pct = (fraction * 100).toFixed(1) + '%';
               if (el('sai-typing-progress-fill'))
-                el('sai-typing-progress-fill').style.width = (fraction * 100).toFixed(1) + '%';
+                el('sai-typing-progress-fill').style.width = pct;
               updateStats(`${typed.toLocaleString()} / ${total.toLocaleString()} characters`);
+              // Sync focus mode arc
+              this._updateFocusArc(fraction);
             },
             (message) => updateStats(message)
           ).then(() => {
             resetButtons();
             updateStats(`✓ Done — ${text.length.toLocaleString()} characters typed`);
+            this._exitFocusMode();
           });
         }
       }, 1000);
@@ -657,6 +827,8 @@ class UIInjector {
         variability:     parseInt(el('sai-typing-variability').value, 10),
         typoRate:        parseInt(el('sai-typing-typo').value, 10),
         stealthMode:     this._stealthMode,
+        fatigueCurve:    this._fatigueCurve,
+        smartErrorZones: this._smartErrorZones,
       };
       chrome.storage.local.get(['savedProfiles'], (data) => {
         const ps = data.savedProfiles || [];
@@ -671,6 +843,52 @@ class UIInjector {
 
     // ── Drag ──
     this._makeDraggable(panel, el('sai-typing-panel-drag'));
+  }
+
+  // ── Focus Mode ────────────────────────────────────────────────────────────
+
+  _enterFocusMode() {
+    const panel   = document.getElementById('sai-typing-panel');
+    const overlay = document.getElementById('sai-focus-overlay');
+    const body    = document.getElementById('sai-typing-body');
+    const header  = document.getElementById('sai-typing-panel-drag');
+    const sesBar  = document.getElementById('sai-session-bar');
+    const resume  = document.getElementById('sai-resume-banner');
+    if (!overlay) return;
+    this._isFocusMode = true;
+    if (body)    body.style.display    = 'none';
+    if (header)  header.style.display  = 'none';
+    if (sesBar)  sesBar.style.display  = 'none';
+    if (resume)  resume.style.display  = 'none';
+    overlay.style.display = 'flex';
+    if (panel)   panel.classList.add('sai-focus-active');
+  }
+
+  _exitFocusMode() {
+    const panel   = document.getElementById('sai-typing-panel');
+    const overlay = document.getElementById('sai-focus-overlay');
+    const body    = document.getElementById('sai-typing-body');
+    const header  = document.getElementById('sai-typing-panel-drag');
+    const sesBar  = document.getElementById('sai-session-bar');
+    if (!overlay) return;
+    this._isFocusMode = false;
+    overlay.style.display = 'none';
+    if (body)    body.style.display   = '';
+    if (header)  header.style.display = '';
+    if (sesBar && !this._isPro) sesBar.style.display = 'flex';
+    if (panel)   panel.classList.remove('sai-focus-active');
+  }
+
+  /** Update the SVG ring in Focus Mode to match typing progress. */
+  _updateFocusArc(fraction) {
+    const arc = document.getElementById('sai-focus-arc');
+    const pct = document.getElementById('sai-focus-pct');
+    if (!arc) return;
+    const circumference = 2 * Math.PI * 18; // r=18 from SVG
+    const offset = circumference * (1 - Math.min(1, fraction));
+    arc.style.strokeDasharray  = circumference;
+    arc.style.strokeDashoffset = offset;
+    if (pct) pct.textContent = Math.round(fraction * 100) + '%';
   }
 
   // ── Drag ──────────────────────────────────────────────────────────────────
