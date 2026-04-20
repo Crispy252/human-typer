@@ -10,7 +10,7 @@
 // TODO: Replace with your Gumroad membership product URL
 // e.g. https://yourname.gumroad.com/l/phantom
 // Gumroad will show all 3 tiers on the same page — no need for separate URLs
-const GUMROAD_URL         = 'https://gumroad.com'; // TODO: set your Gumroad product URL
+const GUMROAD_URL         = 'https://20waystomakemoney.gumroad.com/l/ltxii';
 const GUMROAD_STARTER_URL = GUMROAD_URL;
 const GUMROAD_PRO_URL     = GUMROAD_URL;
 const GUMROAD_MAX_URL     = GUMROAD_URL;
