@@ -94,7 +94,7 @@ Duration is auto-calculated from your text length and chosen WPM. You can overri
 | Text Presets (×5) | — | ✓ |
 | Typing Profiles (×5) | — | ✓ |
 
-Pro is a **one-time $3 purchase** via Gumroad. Enter your license key in the panel to unlock instantly.
+Pro is **$4.99/month** via Gumroad. Cancel anytime. Enter your license key in the panel to unlock instantly.
 
 ---
 

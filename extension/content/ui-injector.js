@@ -71,7 +71,7 @@ class UIInjector {
             <li><span class="sai-paywall-check">✦</span> Smart Error Zones — realistic typo patterns</li>
           </ul>
           <a class="sai-paywall-cta" href="${GUMROAD_PRODUCT_URL}" target="_blank" rel="noopener">
-            Unlock Pro — $3
+            Unlock Pro — $4.99/mo
           </a>
           <button class="sai-paywall-key-toggle" id="sai-paywall-key-toggle">
             Already have a key?
