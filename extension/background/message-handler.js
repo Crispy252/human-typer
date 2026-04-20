@@ -84,7 +84,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.type === 'LICENSE_VERIFY') {
     // Single Gumroad membership product with 3 tiers.
     // Name your tiers exactly "Starter", "Pro", and "Max" in Gumroad.
-    const GUMROAD_PRODUCT_ID = 'ltxii';
+    const GUMROAD_PRODUCT_ID = 'fcENKDsW2HowDVJjt3Ppnw==';
 
     // Maps Gumroad tier name → internal tier string (case-insensitive)
     const TIER_MAP = { starter: 'starter', pro: 'pro', max: 'max' };
