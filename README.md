@@ -1,8 +1,12 @@
-# Human Typer
+# Phantom
 
-A Chrome extension that types your text into Google Docs the way a human would — character by character, over a duration you set, with realistic burst patterns, variable speed, and self-correcting typos.
+**Invisible typing. Human results.**
+
+Phantom is a Chrome extension that types your text into Google Docs, Canvas, Blackboard, Moodle, and more — character by character, over a duration you set, with burst patterns, self-correcting typos, a fatigue curve, and stealth mode. It is indistinguishable from real human typing.
 
 No API keys. No accounts. No data leaves your browser.
+
+<img width="2763" height="1341" alt="Image" src="https://github.com/user-attachments/assets/0bcbb764-ad0e-446a-8068-18fea4efcb60" />
 
 ---
 
@@ -11,50 +15,140 @@ No API keys. No accounts. No data leaves your browser.
 1. Clone or download this repo.
 2. Go to `chrome://extensions/` and enable **Developer Mode** (top-right toggle).
 3. Click **Load unpacked** and select the `extension/` folder.
-4. Open any Google Doc you have edit access to — the **Human Typer** panel will appear in the top-right corner.
+4. Open any supported page — the **Phantom** panel appears in the top-right corner.
+5. Use **Ctrl+Shift+Y** (or **Cmd+Shift+Y** on Mac) to open the panel and start typing from anywhere. Right-click any editable field and choose **Type with Phantom ✦** to do the same.
+
+---
+
+## Supported platforms
+
+| Platform | Coverage |
+|---|---|
+| Google Docs | Full support (all document types) |
+| Google Slides | Full support |
+| Google Forms | Full support |
+| Canvas LMS | Full support |
+| Blackboard | Full support |
+| Moodle | Full support |
 
 ---
 
 ## How to use
 
 1. Paste your text into the **Text to type** box.
-2. Set the **Duration** — how many minutes the typing should take.
-3. Adjust **Speed variability** and **Typo rate** to taste.
-4. Click **Start**. You have 3 seconds to click inside your Google Doc.
-5. Watch it type. Use **Pause** / **Resume** or **Stop** at any time.
+2. Pick a **Speed preset** (Slow / Casual / Normal / Quick / Fast) — duration is calculated automatically from word count, or set it manually.
+3. Toggle any Pro features you want (Stealth Mode, Fatigue Curve, Smart Error Zones).
+4. Click **▶ Start**. You have 3 seconds to click inside the document and place your cursor exactly where you want typing to begin.
+5. Use **⏸ Pause / ▶ Resume** or **⏹ Stop** at any time. If you stop mid-session, Phantom offers to **Resume** from where it left off the next time you open the panel.
+6. Click **◎** in the header to enter **Focus Mode** — the panel collapses to a minimal floating progress ring so it stays out of your way.
 
 ---
 
 ## Settings
 
+### Speed presets
+
+| Preset | WPM | Variability | Typo rate |
+|---|---|---|---|
+| Slow | 25 | 20% | 2% |
+| Casual | 45 | 35% | 3% |
+| Normal | 65 | 45% | 4% |
+| Quick | 90 | 60% | 6% |
+| Fast | 120 | 75% | 8% |
+
+Duration is auto-calculated from your text length and chosen WPM. You can override it manually.
+
+### Manual controls
+
 | Setting | What it does |
 |---|---|
-| **Duration (minutes)** | Total time the typing session should last. The extension paces itself to finish within this window. |
-| **Speed variability** | How much the per-keystroke delay varies. 0% = perfectly even; 100% = very erratic. 40% is a natural default. |
-| **Typo rate** | Probability of hitting an adjacent wrong key. The extension notices the mistake after 0–4 characters and backspaces to fix it, just like a real person. 3% is subtle; 10%+ is noticeable. |
+| **Duration (min)** | Total time the session should last. Phantom paces itself to finish exactly within this window using drift correction. |
+| **Speed variability** | How much per-keystroke delay varies. 0% = perfectly even; 100% = very erratic. ~40% is natural. |
+| **Typo rate** | Probability of hitting a wrong adjacent QWERTY key. Phantom notices after 0–4 characters and backspaces to fix it. 3% is subtle; 8%+ is noticeable. |
+
+### Pro features
+
+| Feature | What it does |
+|---|---|
+| **Stealth Mode** | Adds micro-hesitations inside bursts and 0.8–2.8 s reading pauses after paragraph breaks — makes keystroke-timing analysis fail. |
+| **Fatigue Curve** | Speed decays exponentially over the session (up to 35% slower by the end). Completely natural — no real person types at constant speed for 30 minutes. |
+| **Smart Error Zones** | Typo probability follows a bell curve peaking at 40–60% through each word, matching real QWERTY error patterns. Mid-word misses are far more common than first/last-character errors. |
+| **Text Presets** | Save up to 5 texts and reload them instantly. |
+| **Typing Profiles** | Save up to 5 named settings configurations (speed, variability, typo rate, all toggles). |
+
 ---
-<img width="2763" height="1341" alt="Image" src="https://github.com/user-attachments/assets/0bcbb764-ad0e-446a-8068-18fea4efcb60" />
+
+## Free vs Pro
+
+| | Free | Pro |
+|---|---|---|
+| Sessions per day | 3 | Unlimited |
+| Characters per session | 500 | Unlimited |
+| Speed presets | ✓ | ✓ |
+| Sentence Intelligence | ✓ | ✓ |
+| Resume from interruption | ✓ | ✓ |
+| Focus Mode | ✓ | ✓ |
+| Stealth Mode | — | ✓ |
+| Fatigue Curve | — | ✓ |
+| Smart Error Zones | — | ✓ |
+| Text Presets (×5) | — | ✓ |
+| Typing Profiles (×5) | — | ✓ |
+
+Pro is a **one-time $3 purchase** via Gumroad. Enter your license key in the panel to unlock instantly.
+
+---
 
 ## How it works
 
-Google Docs ignores synthetic browser events (`isTrusted: false`). Human Typer works around this by using the **Chrome Debugger Protocol (CDP)** to fire real, trusted `Input.dispatchKeyEvent` commands — the same mechanism Chrome DevTools uses internally. This is the only reliable way to inject keystrokes into Google Docs from an extension.
+Google Docs (and most LMS editors) ignore synthetic browser events because they have `isTrusted: false`. Phantom works around this using the **Chrome Debugger Protocol (CDP)** to fire real, browser-trusted `Input.dispatchKeyEvent` commands — the same mechanism Chrome DevTools uses internally. This is the only reliable way to inject keystrokes into Google Docs from an extension without a native app.
 
-**Typing rhythm:**
-- Characters are typed in short *bursts* (Poisson-distributed, ~10 chars each), separated by 300–1500 ms thinking pauses.
-- Per-keystroke delay is jittered using a CLT-approximated normal distribution.
-- A drift-correction loop tracks elapsed time vs. target time and adjusts delays to keep the session on schedule.
+### Typing engine
 
-**Typos:**
-- A wrong adjacent QWERTY key is typed, then after 0–4 more characters the extension pauses, backspaces to the mistake, and retypes the correct characters.
+**Rhythm**
+- Characters are typed in short *bursts* (Poisson-distributed, mean ~10 chars), separated by 300–1500 ms thinking pauses.
+- Per-keystroke delay is jittered using a CLT-approximated normal distribution (sum of 3 uniform samples).
+- A drift-correction loop tracks elapsed vs. target time and adjusts each delay to keep the session on schedule.
 
-**Permissions used:**
-- `activeTab` — to interact with the current tab.
-- `debugger` — to attach the Chrome Debugger Protocol and send trusted keypresses.
+**Sentence Intelligence**
+- After `.`, `?`, or `!` followed by a space, Phantom pauses 250–900 ms before the next sentence — scaled to stay within the overall duration budget.
 
-> While the extension is typing, Chrome will display a **"Chrome is being debugged"** banner at the top of the page. This is normal and disappears when typing finishes or is stopped.
+**Typos**
+- A wrong QWERTY-adjacent key is typed, then after 0–4 characters Phantom pauses (~400 ms), backspaces to the error, and retypes the correct characters at a slightly faster "correction" speed.
+- With **Smart Error Zones** on, typo probability peaks mid-word using a Gaussian curve — far more realistic than uniform random errors.
+
+**Fatigue Curve**
+- With **Fatigue Curve** on, the base keystroke delay is multiplied by `1 + 0.35 × (e^(2p) − 1) / (e² − 1)` where `p` is progress 0→1. This produces a natural exponential slowdown — barely noticeable at first, obvious by the end of a long session.
+
+**Stealth Mode**
+- After every `\n`, Phantom sleeps 800–2800 ms to simulate re-reading what was typed.
+- Inside bursts, there is a 6% chance of a 100–450 ms micro-hesitation.
+
+### Resume from interruption
+- Position is saved to `chrome.storage.session` every 15 characters and on every pause.
+- If the session is stopped, the saved state is preserved. On the next panel open, a banner offers to resume with the chars-remaining count shown.
+- State expires after 24 hours and is cleared on clean session completion.
+
+### Permissions used
+
+| Permission | Why |
+|---|---|
+| `activeTab` | Interact with the current tab |
+| `debugger` | Attach CDP to send trusted keypresses |
+| `storage` | Save Pro status, license key, presets, profiles, and resume state |
+| `contextMenus` | "Type with Phantom ✦" right-click menu on editable fields |
+
+> While Phantom is typing, Chrome displays a **"Chrome is being debugged"** banner at the top of the page. This is a Chrome security feature and cannot be suppressed. It disappears as soon as typing finishes or is stopped.
+
+---
+
+## Keyboard shortcut
+
+**Ctrl+Shift+Y** (Windows/Linux) · **Cmd+Shift+Y** (Mac)
+
+Opens the Phantom panel and immediately triggers Start if the panel was already open. Also available by right-clicking any editable field.
 
 ---
 
 ## Privacy
 
-Human Typer runs entirely locally. It never makes network requests, never contacts external servers, and requires no API keys. Your text stays in your browser.
+Phantom runs entirely locally. The only outbound network request is the optional Gumroad license verification call (`POST https://api.gumroad.com/v2/licenses/verify`) when you enter a license key. Your text is never transmitted anywhere.
