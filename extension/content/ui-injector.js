@@ -1,29 +1,42 @@
 /**
- * Phantom — UI Injector v1.3.0
+ * Phantom — UI Injector v1.4.0
  * Injects the floating Phantom panel into Google Docs, Canvas, Blackboard, and Moodle.
- * Handles freemium limits, paywall, Pro presets, typing profiles, stealth mode,
+ * Handles freemium limits, 3-tier paywall, typing profiles, stealth mode,
  * fatigue curve, smart error zones, focus mode, and resume from interruption.
+ *
+ * Tiers: free → starter ($2.99/mo) → pro ($4.99/mo) → max ($9.99/mo)
  */
 
-// TODO: Replace with your Gumroad product URL after creating the product.
-// gumroad.com → New Product → $3 → type "License Key" → name "Phantom Pro"
-// Then paste the product page URL here (e.g. https://yourname.gumroad.com/l/phantom)
-const GUMROAD_PRODUCT_URL = 'https://gumroad.com'; // TODO: set your Gumroad product URL
+// TODO: Replace with your Gumroad membership product URL
+// e.g. https://yourname.gumroad.com/l/phantom
+// Gumroad will show all 3 tiers on the same page — no need for separate URLs
+const GUMROAD_URL         = 'https://20waystomakemoney.gumroad.com/l/ltxii';
+const GUMROAD_STARTER_URL = GUMROAD_URL;
+const GUMROAD_PRO_URL     = GUMROAD_URL;
+const GUMROAD_MAX_URL     = GUMROAD_URL;
 
 const FREE_SESSION_LIMIT = 3;
 const FREE_CHAR_LIMIT    = 500;
-const PRO_PRESET_LIMIT   = 5;
-const PRO_PROFILE_LIMIT  = 5;
+const PRESET_LIMIT       = 5;
+const PROFILE_LIMIT      = 5;
+
+// Tier rank — higher = more access
+const TIER_RANK = { free: 0, starter: 1, pro: 2, max: 3 };
 
 class UIInjector {
   constructor() {
-    this._isPro           = false;
+    this._tier            = 'free'; // 'free' | 'starter' | 'pro' | 'max'
     this._isMinimized     = false;
     this._isFocusMode     = false;
     this._stealthMode     = false;
     this._fatigueCurve    = false;
     this._smartErrorZones = false;
-    this._pendingResume   = null; // set when user clicks Resume banner
+    this._pendingResume   = null;
+  }
+
+  // Returns true if user's tier is at least minTier
+  _hasTier(minTier) {
+    return (TIER_RANK[this._tier] || 0) >= (TIER_RANK[minTier] || 0);
   }
 
   // ── Inject ────────────────────────────────────────────────────────────────
@@ -59,20 +72,32 @@ class UIInjector {
       <div class="sai-paywall-modal" id="sai-paywall-modal" style="display:none">
         <div class="sai-paywall-content">
           <div class="sai-paywall-glow">✦</div>
-          <div class="sai-paywall-title">Upgrade to Phantom Pro</div>
+          <div class="sai-paywall-title">Upgrade Phantom</div>
           <div class="sai-paywall-reason" id="sai-paywall-reason"></div>
-          <ul class="sai-paywall-features">
-            <li><span class="sai-paywall-check">✦</span> Unlimited sessions per day</li>
-            <li><span class="sai-paywall-check">✦</span> Unlimited characters per session</li>
-            <li><span class="sai-paywall-check">✦</span> 5 saved text presets</li>
-            <li><span class="sai-paywall-check">✦</span> 5 typing profiles (save settings)</li>
-            <li><span class="sai-paywall-check">✦</span> Stealth Mode — anti-detection pauses</li>
-            <li><span class="sai-paywall-check">✦</span> Fatigue Curve — naturally slows over time</li>
-            <li><span class="sai-paywall-check">✦</span> Smart Error Zones — realistic typo patterns</li>
-          </ul>
-          <a class="sai-paywall-cta" href="${GUMROAD_PRODUCT_URL}" target="_blank" rel="noopener">
-            Unlock Pro — $3
-          </a>
+
+          <!-- Tier cards -->
+          <div class="sai-tier-grid">
+            <div class="sai-tier-card">
+              <div class="sai-tier-name">Starter</div>
+              <div class="sai-tier-price">$2.99<span class="sai-tier-period">/mo</span></div>
+              <div class="sai-tier-desc">Unlimited sessions &amp; characters</div>
+              <a class="sai-tier-btn" href="${GUMROAD_STARTER_URL}" target="_blank" rel="noopener">Subscribe</a>
+            </div>
+            <div class="sai-tier-card sai-tier-card-featured">
+              <div class="sai-tier-popular">✦ Popular</div>
+              <div class="sai-tier-name">Pro</div>
+              <div class="sai-tier-price">$4.99<span class="sai-tier-period">/mo</span></div>
+              <div class="sai-tier-desc">+Stealth, Fatigue &amp; Error Zones</div>
+              <a class="sai-tier-btn sai-tier-btn-featured" href="${GUMROAD_PRO_URL}" target="_blank" rel="noopener">Subscribe</a>
+            </div>
+            <div class="sai-tier-card">
+              <div class="sai-tier-name">Max</div>
+              <div class="sai-tier-price">$9.99<span class="sai-tier-period">/mo</span></div>
+              <div class="sai-tier-desc">+Background Mode &amp; AI Profiles</div>
+              <a class="sai-tier-btn" href="${GUMROAD_MAX_URL}" target="_blank" rel="noopener">Subscribe</a>
+            </div>
+          </div>
+
           <button class="sai-paywall-key-toggle" id="sai-paywall-key-toggle">
             Already have a key?
           </button>
@@ -100,7 +125,7 @@ class UIInjector {
         <span class="sai-header-title">
           <span class="sai-header-icon">✦</span>
           Phantom
-          <span class="sai-pro-badge" id="sai-pro-badge" style="display:none">PRO</span>
+          <span class="sai-pro-badge" id="sai-pro-badge" style="display:none">FREE</span>
         </span>
         <div class="sai-typing-panel-controls">
           <button class="sai-panel-focus"    id="sai-typing-focus"    title="Focus mode">◎</button>
@@ -231,6 +256,35 @@ class UIInjector {
           </div>
         </div>
 
+        <!-- Coming Soon (Max) -->
+        <div class="sai-stealth-row sai-coming-soon-row">
+          <div class="sai-stealth-info">
+            <span class="sai-stealth-label">Background Mode</span>
+            <span class="sai-stealth-desc">Type while browsing other tabs</span>
+          </div>
+          <div class="sai-stealth-right">
+            <span class="sai-coming-soon-badge">MAX — SOON</span>
+          </div>
+        </div>
+        <div class="sai-stealth-row sai-coming-soon-row">
+          <div class="sai-stealth-info">
+            <span class="sai-stealth-label">Scheduled Start</span>
+            <span class="sai-stealth-desc">Set a timer to begin automatically</span>
+          </div>
+          <div class="sai-stealth-right">
+            <span class="sai-coming-soon-badge">MAX — SOON</span>
+          </div>
+        </div>
+        <div class="sai-stealth-row sai-coming-soon-row">
+          <div class="sai-stealth-info">
+            <span class="sai-stealth-label">AI Detector Profiles</span>
+            <span class="sai-stealth-desc">GPTZero &amp; Turnitin timing patterns</span>
+          </div>
+          <div class="sai-stealth-right">
+            <span class="sai-coming-soon-badge">MAX — SOON</span>
+          </div>
+        </div>
+
         <!-- Typing Profiles (Pro) -->
         <div class="sai-section-card" id="sai-profiles-section" style="display:none">
           <div class="sai-section-card-header">
@@ -269,50 +323,53 @@ class UIInjector {
 
   _loadState() {
     chrome.storage.local.get(
-      ['sessionsToday', 'lastResetDate', 'isPro', 'savedPresets', 'savedProfiles'],
+      ['sessionsToday', 'lastResetDate', 'tier', 'isPro', 'savedPresets', 'savedProfiles'],
       (data) => {
-        const today        = new Date().toISOString().slice(0, 10);
-        const isPro        = !!data.isPro;
+        // Backward compat: old installs used isPro:true instead of tier
+        const tier          = data.tier || (data.isPro ? 'pro' : 'free');
+        const today         = new Date().toISOString().slice(0, 10);
         const sessionsToday = (data.lastResetDate === today) ? (data.sessionsToday || 0) : 0;
-        const presets      = data.savedPresets  || [];
-        const profiles     = data.savedProfiles || [];
-        this._applyProState(isPro, sessionsToday, presets, profiles);
+        const presets       = data.savedPresets  || [];
+        const profiles      = data.savedProfiles || [];
+        this._applyTierState(tier, sessionsToday, presets, profiles);
       }
     );
   }
 
-  _applyProState(isPro, sessionsToday, presets, profiles) {
-    this._isPro = isPro;
-    const el = (id) => document.getElementById(id);
+  _applyTierState(tier, sessionsToday, presets, profiles) {
+    this._tier = tier;
+    const el   = (id) => document.getElementById(id);
+    const isPaid = this._hasTier('starter');
+    const isPro  = this._hasTier('pro');
+
+    // Badge — show tier name for paid users
+    if (el('sai-pro-badge')) {
+      el('sai-pro-badge').style.display = isPaid ? 'inline-block' : 'none';
+      el('sai-pro-badge').textContent   = tier.toUpperCase();
+    }
+
+    // Session bar + char counter — free only
+    if (el('sai-session-bar'))  el('sai-session-bar').style.display  = isPaid ? 'none' : 'flex';
+    if (el('sai-char-counter')) el('sai-char-counter').style.display = isPaid ? 'none' : 'block';
+
+    // Presets + profiles — pro+
+    if (el('sai-presets-section'))  el('sai-presets-section').style.display  = isPro ? 'block' : 'none';
+    if (el('sai-profiles-section')) el('sai-profiles-section').style.display = isPro ? 'block' : 'none';
+
+    // Pro feature toggles
+    const setToggle = (btnId, lockId, unlocked) => {
+      if (el(btnId))  el(btnId)[unlocked ? 'classList' : 'classList'][unlocked ? 'remove' : 'add']('disabled');
+      if (el(lockId)) el(lockId).style.display = unlocked ? 'none' : '';
+    };
+    setToggle('sai-stealth-toggle',      'sai-stealth-lock',        isPro);
+    setToggle('sai-fatigue-toggle',      'sai-fatigue-lock',        isPro);
+    setToggle('sai-smart-errors-toggle', 'sai-smart-errors-lock',   isPro);
 
     if (isPro) {
-      if (el('sai-pro-badge'))           el('sai-pro-badge').style.display           = 'inline-block';
-      if (el('sai-session-bar'))         el('sai-session-bar').style.display         = 'none';
-      if (el('sai-char-counter'))        el('sai-char-counter').style.display        = 'none';
-      if (el('sai-presets-section'))     el('sai-presets-section').style.display     = 'block';
-      if (el('sai-profiles-section'))    el('sai-profiles-section').style.display    = 'block';
-      // Unlock Pro toggles
-      if (el('sai-stealth-toggle'))      el('sai-stealth-toggle').classList.remove('disabled');
-      if (el('sai-stealth-lock'))        el('sai-stealth-lock').style.display        = 'none';
-      if (el('sai-fatigue-toggle'))      el('sai-fatigue-toggle').classList.remove('disabled');
-      if (el('sai-fatigue-lock'))        el('sai-fatigue-lock').style.display        = 'none';
-      if (el('sai-smart-errors-toggle')) el('sai-smart-errors-toggle').classList.remove('disabled');
-      if (el('sai-smart-errors-lock'))   el('sai-smart-errors-lock').style.display   = 'none';
       this._renderPresets(presets);
       this._renderProfiles(profiles);
-    } else {
-      if (el('sai-pro-badge'))           el('sai-pro-badge').style.display           = 'none';
-      if (el('sai-session-bar'))         el('sai-session-bar').style.display         = 'flex';
-      if (el('sai-char-counter'))        el('sai-char-counter').style.display        = 'block';
-      if (el('sai-presets-section'))     el('sai-presets-section').style.display     = 'none';
-      if (el('sai-profiles-section'))    el('sai-profiles-section').style.display    = 'none';
-      // Keep Pro toggles locked
-      if (el('sai-stealth-toggle'))      el('sai-stealth-toggle').classList.add('disabled');
-      if (el('sai-stealth-lock'))        el('sai-stealth-lock').style.display        = '';
-      if (el('sai-fatigue-toggle'))      el('sai-fatigue-toggle').classList.add('disabled');
-      if (el('sai-fatigue-lock'))        el('sai-fatigue-lock').style.display        = '';
-      if (el('sai-smart-errors-toggle')) el('sai-smart-errors-toggle').classList.add('disabled');
-      if (el('sai-smart-errors-lock'))   el('sai-smart-errors-lock').style.display   = '';
+    }
+    if (!isPaid) {
       this._updateSessionPips(sessionsToday);
       const ta = el('sai-typing-text');
       this._updateCharCount(ta ? ta.value.length : 0);
@@ -542,8 +599,8 @@ class UIInjector {
 
     // Stealth Mode
     el('sai-stealth-toggle').addEventListener('click', () => {
-      if (!this._isPro) {
-        this._showPaywall('Stealth Mode is a Pro feature. Upgrade to unlock anti-detection micro-pauses.');
+      if (!this._hasTier('pro')) {
+        this._showPaywall('Stealth Mode requires Pro or Max. Upgrade to unlock anti-detection micro-pauses.');
         return;
       }
       this._stealthMode = !this._stealthMode;
@@ -554,8 +611,8 @@ class UIInjector {
 
     // Fatigue Curve
     el('sai-fatigue-toggle').addEventListener('click', () => {
-      if (!this._isPro) {
-        this._showPaywall('Fatigue Curve is a Pro feature. Typing naturally slows over long sessions — much harder to detect.');
+      if (!this._hasTier('pro')) {
+        this._showPaywall('Fatigue Curve requires Pro or Max. Typing naturally slows over long sessions — much harder to detect.');
         return;
       }
       this._fatigueCurve = !this._fatigueCurve;
@@ -566,8 +623,8 @@ class UIInjector {
 
     // Smart Error Zones
     el('sai-smart-errors-toggle').addEventListener('click', () => {
-      if (!this._isPro) {
-        this._showPaywall('Smart Error Zones is a Pro feature. Typos cluster in the middle of words, just like real human errors.');
+      if (!this._hasTier('pro')) {
+        this._showPaywall('Smart Error Zones requires Pro or Max. Typos cluster in the middle of words, just like real human errors.');
         return;
       }
       this._smartErrorZones = !this._smartErrorZones;
@@ -622,7 +679,7 @@ class UIInjector {
       }
 
       const sessionCheck = await window.checkSessionAllowed();
-      if (!sessionCheck.isPro) {
+      if (sessionCheck.tier === 'free') {
         if (!sessionCheck.allowed) {
           this._showPaywall(
             `You've used all ${FREE_SESSION_LIMIT} free sessions for today. ` +
@@ -757,7 +814,7 @@ class UIInjector {
 
     // ── Session bar: Upgrade button ──
     el('sai-session-upgrade').addEventListener('click', () => {
-      this._showPaywall('Upgrade to Pro for unlimited sessions and characters.');
+      this._showPaywall('Upgrade to Starter or higher for unlimited sessions and characters.');
     });
 
     // ── Paywall: dismiss ──
@@ -780,9 +837,10 @@ class UIInjector {
       chrome.runtime.sendMessage({ type: 'LICENSE_VERIFY', licenseKey: key }, (res) => {
         set('sai-license-verify', 'disabled', false);
         if (res && res.valid) {
-          chrome.storage.local.set({ isPro: true, licenseKey: key }, () => {
+          const tierName = res.tier || 'pro';
+          chrome.storage.local.set({ tier: tierName, licenseKey: key }, () => {
             if (status) {
-              status.textContent = '✓ License activated! Welcome to Pro.';
+              status.textContent = `✓ ${tierName.charAt(0).toUpperCase() + tierName.slice(1)} activated! Welcome to Phantom.`;
               status.className   = 'sai-license-status sai-license-ok';
             }
             setTimeout(() => {

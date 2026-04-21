@@ -82,10 +82,13 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   }
 
   if (request.type === 'LICENSE_VERIFY') {
-    // TODO: Replace YOUR_PRODUCT_ID with your Gumroad product_id
-    // Find it in your Gumroad dashboard → the product URL slug
-    // e.g. if your product is at gumroad.com/l/human-typer, the product_id is "human-typer"
-    const GUMROAD_PRODUCT_ID = 'YOUR_PRODUCT_ID'; // TODO: set your Gumroad product_id
+    // Single Gumroad membership product with 3 tiers.
+    // Name your tiers exactly "Starter", "Pro", and "Max" in Gumroad.
+    const GUMROAD_PRODUCT_ID = 'fcENKDsW2HowDVJjt3Ppnw==';
+
+    // Maps Gumroad tier name → internal tier string (case-insensitive)
+    const TIER_MAP = { starter: 'starter', pro: 'pro', max: 'max' };
+
     fetch('https://api.gumroad.com/v2/licenses/verify', {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -97,11 +100,22 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     })
       .then(r => r.json())
       .then(data => {
-        if (data.success) {
-          sendResponse({ valid: true });
-        } else {
+        if (!data.success) {
           sendResponse({ valid: false, error: data.message || 'Invalid license key.' });
+          return;
         }
+        const p = data.purchase || {};
+        if (p.cancelled || p.chargebacked || p.subscription_cancelled_at || p.subscription_failed_at) {
+          sendResponse({ valid: false, error: 'Your Phantom subscription is no longer active. Resubscribe at gumroad.com to continue.' });
+          return;
+        }
+        // Detect tier from Gumroad response.
+        // Gumroad returns the membership tier in purchase.variants as "(Max)" / "(Pro)" / "(Starter)"
+        // Also check plan_name and tier.name as fallbacks.
+        const variantTier = p.variants ? p.variants.replace(/[()]/g, '').trim() : '';
+        const rawTier = variantTier || (p.tier && p.tier.name) || p.plan_name || '';
+        const tier = TIER_MAP[rawTier.toLowerCase()] || 'starter';
+        sendResponse({ valid: true, tier });
       })
       .catch(err => sendResponse({ valid: false, error: err.message }));
     return true;
