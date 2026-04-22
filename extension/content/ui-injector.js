@@ -1,6 +1,6 @@
 /**
- * Phantom — UI Injector v1.4.0
- * Injects the floating Phantom panel into Google Docs, Canvas, Blackboard, and Moodle.
+ * TypeCloak — UI Injector v1.4.0
+ * Injects the floating TypeCloak panel into Google Docs, Canvas, Blackboard, and Moodle.
  * Handles freemium limits, 3-tier paywall, typing profiles, stealth mode,
  * fatigue curve, smart error zones, focus mode, and resume from interruption.
  *
@@ -72,7 +72,7 @@ class UIInjector {
       <div class="sai-paywall-modal" id="sai-paywall-modal" style="display:none">
         <div class="sai-paywall-content">
           <div class="sai-paywall-glow">✦</div>
-          <div class="sai-paywall-title">Upgrade Phantom</div>
+          <div class="sai-paywall-title">Upgrade TypeCloak</div>
           <div class="sai-paywall-reason" id="sai-paywall-reason"></div>
 
           <!-- Tier cards -->
@@ -124,7 +124,7 @@ class UIInjector {
       <div class="sai-typing-panel-header" id="sai-typing-panel-drag">
         <span class="sai-header-title">
           <span class="sai-header-icon">✦</span>
-          Phantom
+          TypeCloak
           <span class="sai-pro-badge" id="sai-pro-badge" style="display:none">FREE</span>
         </span>
         <div class="sai-typing-panel-controls">
@@ -840,7 +840,7 @@ class UIInjector {
           const tierName = res.tier || 'pro';
           chrome.storage.local.set({ tier: tierName, licenseKey: key }, () => {
             if (status) {
-              status.textContent = `✓ ${tierName.charAt(0).toUpperCase() + tierName.slice(1)} activated! Welcome to Phantom.`;
+              status.textContent = `✓ ${tierName.charAt(0).toUpperCase() + tierName.slice(1)} activated! Welcome to TypeCloak.`;
               status.className   = 'sai-license-status sai-license-ok';
             }
             setTimeout(() => {

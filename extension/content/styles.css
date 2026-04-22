@@ -1,4 +1,4 @@
-/* Phantom — Panel Styles v1.3.0 (Dark Theme) */
+/* TypeCloak — Panel Styles v1.3.0 (Dark Theme) */
 
 /* ── Design tokens (scoped to panel so they don't leak into Google Docs) ── */
 .sai-typing-panel {
@@ -863,7 +863,7 @@
 
 .sai-focus-fill {
   fill: none;
-  stroke: url(#phantomGrad);
+  stroke: url(#tcGrad);
   stroke-width: 4;
   stroke-linecap: round;
   stroke-dasharray: 113.1; /* 2π×18 */

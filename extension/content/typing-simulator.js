@@ -1,5 +1,5 @@
 /**
- * Phantom — Typing Simulator v1.3.0
+ * TypeCloak — Typing Simulator v1.3.0
  * Simulates deeply realistic human typing using Chrome Debugger Protocol (CDP).
  *
  * CDP events are browser-trusted — Google Docs, Canvas, and Blackboard respond
@@ -144,7 +144,7 @@ function isDocEditable() {
 // Falls back to chrome.storage.local if session is unavailable (older Chrome builds).
 
 const _resumeStorage = (chrome.storage.session) ? chrome.storage.session : chrome.storage.local;
-const RESUME_KEY = '_phantomResume';
+const RESUME_KEY = '_tcResume';
 
 function saveResumeState(state) {
   // state = { text, resumeFrom, settings, timestamp }
@@ -300,7 +300,7 @@ class TypingSimulator {
     if (this.isRunning) return;
 
     const status = (msg) => {
-      console.log('[Phantom]', msg);
+      console.log('[TypeCloak]', msg);
       if (onStatus) onStatus(msg);
     };
 

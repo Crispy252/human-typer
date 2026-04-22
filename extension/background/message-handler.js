@@ -106,7 +106,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         }
         const p = data.purchase || {};
         if (p.cancelled || p.chargebacked || p.subscription_cancelled_at || p.subscription_failed_at) {
-          sendResponse({ valid: false, error: 'Your Phantom subscription is no longer active. Resubscribe at gumroad.com to continue.' });
+          sendResponse({ valid: false, error: 'Your TypeCloak subscription is no longer active. Resubscribe at gumroad.com to continue.' });
           return;
         }
         // Detect tier from Gumroad response.
