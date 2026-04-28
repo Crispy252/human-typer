@@ -1,8 +1,13 @@
 {
   "manifest_version": 3,
-  "name": "Phantom",
-  "version": "1.4.0",
-  "description": "Invisible typing. Human results. Types into Google Docs, Canvas & Blackboard — realistic speed, self-correcting typos, stealth mode",
+  "name": "TypeCloak",
+  "version": "1.4.2",
+  "description": "Auto-type into Google Docs, Canvas & Blackboard at human speed. Realistic typos, burst rhythm, stealth mode. Free to try.",
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
   "permissions": [
     "debugger",
     "storage",
@@ -22,7 +27,7 @@
         "default": "Ctrl+Shift+Y",
         "mac": "Command+Shift+Y"
       },
-      "description": "Open Phantom and start typing"
+      "description": "Open TypeCloak and start typing"
     }
   },
   "background": {
