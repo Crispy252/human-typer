@@ -6,8 +6,7 @@ TypeCloak is a Chrome extension that types your text into Google Docs, Canvas, B
 
 No API keys. No accounts. No data leaves your browser.
 
-<img width="2763" height="1341" alt="Image" src="https://github.com/user-attachments/assets/0bcbb764-ad0e-446a-8068-18fea4efcb60" />
-
+<img width="1382" height="674" alt="Image" src="https://github.com/user-attachments/assets/86b4380a-1a78-4480-a850-82598e9a823c" />
 ---
 
 ## Install
