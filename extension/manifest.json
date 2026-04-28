@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "TypeCloak",
-  "version": "1.4.1",
-  "description": "TypeCloak — invisible typing. Human results. Auto-types into Google Docs, Canvas & Blackboard with realistic speed and typos",
+  "version": "1.4.2",
+  "description": "Auto-type into Google Docs, Canvas & Blackboard at human speed. Realistic typos, burst rhythm, stealth mode. Free to try.",
   "icons": {
     "16": "icons/icon16.png",
     "48": "icons/icon48.png",
