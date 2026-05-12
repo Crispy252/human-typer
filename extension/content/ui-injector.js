@@ -1072,14 +1072,25 @@ class UIInjector {
   _loadReferralSection() {
     const el = (id) => document.getElementById(id);
 
-    // Generate / retrieve referral code
-    chrome.runtime.sendMessage({ type: 'REFERRAL_GENERATE' }, (res) => {
-      if (!res || !res.success) return;
-      const code    = res.code;
-      const extId   = chrome.runtime.id;
-      const link    = `https://chromewebstore.google.com/detail/${extId}?utm_source=referral&ref=${code}`;
-      const linkEl  = el('sai-referral-link');
+    const populateLink = (code) => {
+      const extId  = 'bhpdaabimcokbmfjighdclimgaeeionm';
+      const link   = `https://chromewebstore.google.com/detail/${extId}?utm_source=referral&ref=${code}`;
+      const linkEl = el('sai-referral-link');
       if (linkEl) linkEl.value = link;
+    };
+
+    // Try local storage first so the link appears instantly
+    chrome.storage.local.get(['referralCode'], (data) => {
+      if (data.referralCode) {
+        populateLink(data.referralCode);
+      }
+    });
+
+    // Then sync with Supabase (registers the code if new, no-op if already exists)
+    chrome.runtime.sendMessage({ type: 'REFERRAL_GENERATE' }, (res) => {
+      if (chrome.runtime.lastError) return; // service worker unavailable — local code already shown
+      if (!res || !res.success || !res.code) return;
+      populateLink(res.code);
     });
 
     // Check for new referral rewards (rate-limited to once/hour in background)
