@@ -1209,6 +1209,26 @@
   color: #a5b4fc;
 }
 
+.sai-referral-code-display-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.sai-referral-code-display {
+  flex: 1;
+  background: rgba(99, 102, 241, 0.1);
+  border: 1px solid rgba(99, 102, 241, 0.3);
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-size: 15px;
+  font-weight: 800;
+  color: #a5b4fc;
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  letter-spacing: 0.12em;
+  text-align: center;
+}
+
 .sai-referral-link-row {
   display: flex;
   gap: 6px;

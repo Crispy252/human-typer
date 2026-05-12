@@ -316,12 +316,16 @@ class UIInjector {
           </button>
           <div class="sai-referral-body" id="sai-referral-body" style="display:none">
             <div class="sai-referral-desc">
-              Share your link. Every friend who installs earns you <strong>7 free Pro days</strong>. No limit.
+              Share your code or link. Every friend who installs earns you <strong>7 free Pro days</strong>. No limit.
+            </div>
+            <div class="sai-referral-code-display-row">
+              <div class="sai-referral-code-display" id="sai-referral-code-display">––––––––</div>
+              <button class="sai-referral-copy" id="sai-referral-copy-code">Copy Code</button>
             </div>
             <div class="sai-referral-link-row">
               <input type="text" class="sai-referral-link-input" id="sai-referral-link"
                      readonly placeholder="Generating link…">
-              <button class="sai-referral-copy" id="sai-referral-copy">Copy</button>
+              <button class="sai-referral-copy" id="sai-referral-copy">Copy Link</button>
             </div>
             <div class="sai-referral-stats" id="sai-referral-stats" style="display:none">
               <span id="sai-referral-count">0 friends joined</span>
@@ -877,13 +881,24 @@ class UIInjector {
       chevron.textContent   = open ? '▾' : '▴';
     });
 
+    // ── Referral: copy code ──
+    el('sai-referral-copy-code').addEventListener('click', () => {
+      const codeDisp = el('sai-referral-code-display');
+      const code = codeDisp ? codeDisp.textContent.trim() : '';
+      if (!code || code === '––––––––') return;
+      navigator.clipboard.writeText(code).then(() => {
+        const btn = el('sai-referral-copy-code');
+        if (btn) { btn.textContent = 'Copied!'; setTimeout(() => { btn.textContent = 'Copy Code'; }, 2000); }
+      });
+    });
+
     // ── Referral: copy link ──
     el('sai-referral-copy').addEventListener('click', () => {
       const linkEl = el('sai-referral-link');
       if (!linkEl || !linkEl.value) return;
       navigator.clipboard.writeText(linkEl.value).then(() => {
         const btn = el('sai-referral-copy');
-        if (btn) { btn.textContent = 'Copied!'; setTimeout(() => { btn.textContent = 'Copy'; }, 2000); }
+        if (btn) { btn.textContent = 'Copied!'; setTimeout(() => { btn.textContent = 'Copy Link'; }, 2000); }
       });
     });
 
@@ -1073,10 +1088,12 @@ class UIInjector {
     const el = (id) => document.getElementById(id);
 
     const populateLink = (code) => {
-      const extId  = 'bhpdaabimcokbmfjighdclimgaeeionm';
-      const link   = `https://chromewebstore.google.com/detail/${extId}?utm_source=referral&ref=${code}`;
-      const linkEl = el('sai-referral-link');
-      if (linkEl) linkEl.value = link;
+      const extId    = 'bhpdaabimcokbmfjighdclimgaeeionm';
+      const link     = `https://chromewebstore.google.com/detail/${extId}?utm_source=referral&ref=${code}`;
+      const linkEl   = el('sai-referral-link');
+      const codeDisp = el('sai-referral-code-display');
+      if (linkEl)   linkEl.value      = link;
+      if (codeDisp) codeDisp.textContent = code;
     };
 
     // Try local storage first so the link appears instantly
