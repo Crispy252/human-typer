@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "TypeCloak",
-  "version": "1.4.2",
+  "version": "1.4.3",
   "description": "Auto-type into Google Docs, Canvas & Blackboard at human speed. Realistic typos, burst rhythm, stealth mode. Free to try.",
   "icons": {
     "16": "icons/icon16.png",
@@ -19,7 +19,8 @@
     "*://*.blackboard.com/*",
     "*://*.moodlecloud.com/*",
     "*://*.moodle.org/*",
-    "https://api.gumroad.com/*"
+    "https://api.gumroad.com/*",
+    "https://*.supabase.co/*"
   ],
   "commands": {
     "start-typing": {

@@ -529,7 +529,11 @@ class TypingSimulator {
  */
 async function checkSessionAllowed() {
   return new Promise(resolve => {
-    chrome.storage.local.get(['sessionsToday', 'lastResetDate', 'tier', 'isPro'], (data) => {
+    chrome.storage.local.get(['sessionsToday', 'lastResetDate', 'tier', 'isPro', 'proExpiresAt'], (data) => {
+      // Referral Pro days: check expiry timestamp first
+      if (data.proExpiresAt && data.proExpiresAt > Date.now()) {
+        return resolve({ allowed: true, tier: 'pro', sessionsToday: -1 });
+      }
       // Backward compat: old installs used isPro:true
       const tier = data.tier || (data.isPro ? 'pro' : 'free');
       if (tier !== 'free') return resolve({ allowed: true, tier, sessionsToday: -1 });

@@ -1155,3 +1155,206 @@
   letter-spacing: 0.04em;
   white-space: nowrap;
 }
+
+/* ── Referral section ────────────────────────────────────────────────────────── */
+
+.sai-referral-section {
+  border: 1px solid rgba(99, 102, 241, 0.15);
+  border-radius: 8px;
+  overflow: hidden;
+  margin-bottom: 4px;
+}
+
+.sai-referral-toggle {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 9px 12px;
+  background: rgba(99, 102, 241, 0.07);
+  border: none;
+  cursor: pointer;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #a5b4fc;
+  text-align: left;
+  transition: background 0.15s;
+}
+
+.sai-referral-toggle:hover {
+  background: rgba(99, 102, 241, 0.14);
+}
+
+.sai-referral-chevron {
+  font-size: 10px;
+  opacity: 0.7;
+}
+
+.sai-referral-body {
+  padding: 10px 12px 12px;
+  background: rgba(99, 102, 241, 0.04);
+  border-top: 1px solid rgba(99, 102, 241, 0.12);
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+.sai-referral-desc {
+  font-size: 11px;
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+.sai-referral-desc strong {
+  color: #a5b4fc;
+}
+
+.sai-referral-link-row {
+  display: flex;
+  gap: 6px;
+}
+
+.sai-referral-link-input {
+  flex: 1;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  padding: 5px 8px;
+  font-size: 10px;
+  color: var(--muted);
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  outline: none;
+  cursor: text;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sai-referral-copy {
+  background: rgba(99, 102, 241, 0.18);
+  border: 1px solid rgba(99, 102, 241, 0.4);
+  color: #a5b4fc;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s;
+  flex-shrink: 0;
+}
+
+.sai-referral-copy:hover {
+  background: rgba(99, 102, 241, 0.32);
+  color: #fff;
+}
+
+.sai-referral-stats {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10.5px;
+  color: #a5b4fc;
+  font-weight: 600;
+}
+
+.sai-referral-dot {
+  color: var(--dimmed);
+}
+
+.sai-referral-divider {
+  height: 1px;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.sai-referral-claim-row {
+  display: flex;
+  gap: 6px;
+}
+
+.sai-referral-code-input {
+  flex: 1;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  padding: 5px 8px;
+  font-size: 11px;
+  color: var(--text);
+  outline: none;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 600;
+  transition: border-color 0.15s;
+}
+
+.sai-referral-code-input:focus {
+  border-color: rgba(99, 102, 241, 0.5);
+}
+
+.sai-referral-code-input::placeholder {
+  text-transform: none;
+  letter-spacing: normal;
+  font-weight: 400;
+  color: var(--dimmed);
+}
+
+.sai-referral-claim-btn {
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s, color 0.15s;
+  flex-shrink: 0;
+}
+
+.sai-referral-claim-btn:hover {
+  background: rgba(99, 102, 241, 0.18);
+  color: #a5b4fc;
+}
+
+.sai-referral-claim-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.sai-referral-claim-status {
+  font-size: 10.5px;
+  line-height: 1.35;
+  min-height: 0;
+}
+
+.sai-referral-ok  { color: var(--success); }
+.sai-referral-err { color: var(--danger); }
+
+/* ── Toast notification ──────────────────────────────────────────────────────── */
+
+.sai-toast {
+  position: absolute;
+  bottom: 14px;
+  left: 12px;
+  right: 12px;
+  background: linear-gradient(135deg, #1e1040, #17082e);
+  border: 1px solid rgba(139, 92, 246, 0.4);
+  border-radius: 8px;
+  padding: 9px 12px;
+  font-size: 11.5px;
+  color: #c4b5fd;
+  font-weight: 500;
+  line-height: 1.4;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+  opacity: 0;
+  transform: translateY(6px);
+  transition: opacity 0.25s ease, transform 0.25s ease;
+  pointer-events: none;
+  z-index: 10;
+}
+
+.sai-toast.sai-toast-visible {
+  opacity: 1;
+  transform: translateY(0);
+}

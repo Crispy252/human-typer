@@ -308,6 +308,39 @@ class UIInjector {
 
         <div class="sai-divider"></div>
 
+        <!-- Refer a Friend (collapsed by default) -->
+        <div class="sai-referral-section" id="sai-referral-section">
+          <button class="sai-referral-toggle" id="sai-referral-toggle">
+            <span>✦ Refer a Friend — earn free Pro days</span>
+            <span class="sai-referral-chevron" id="sai-referral-chevron">▾</span>
+          </button>
+          <div class="sai-referral-body" id="sai-referral-body" style="display:none">
+            <div class="sai-referral-desc">
+              Share your link. Every friend who installs earns you <strong>7 free Pro days</strong>. No limit.
+            </div>
+            <div class="sai-referral-link-row">
+              <input type="text" class="sai-referral-link-input" id="sai-referral-link"
+                     readonly placeholder="Generating link…">
+              <button class="sai-referral-copy" id="sai-referral-copy">Copy</button>
+            </div>
+            <div class="sai-referral-stats" id="sai-referral-stats" style="display:none">
+              <span id="sai-referral-count">0 friends joined</span>
+              <span class="sai-referral-dot">·</span>
+              <span id="sai-referral-days">0 days earned</span>
+            </div>
+            <div class="sai-referral-divider"></div>
+            <div class="sai-referral-claim-row">
+              <input type="text" class="sai-referral-code-input" id="sai-referral-code-input"
+                     placeholder="Have a referral code?" maxlength="8"
+                     autocomplete="off" spellcheck="false">
+              <button class="sai-referral-claim-btn" id="sai-referral-claim-btn">Apply</button>
+            </div>
+            <div class="sai-referral-claim-status" id="sai-referral-claim-status"></div>
+          </div>
+        </div>
+
+        <div class="sai-divider"></div>
+
         <!-- Progress -->
         <div class="sai-typing-progress-section" id="sai-typing-progress-section" style="display:none">
           <div class="sai-typing-progress-bar">
@@ -324,6 +357,9 @@ class UIInjector {
         </div>
 
       </div><!-- end body -->
+
+      <!-- ── Toast notification ──────────────────────────────────────────── -->
+      <div class="sai-toast" id="sai-toast" style="display:none"></div>
     `;
 
     document.body.appendChild(panel);
@@ -344,6 +380,8 @@ class UIInjector {
         const presets       = data.savedPresets  || [];
         const profiles      = data.savedProfiles || [];
         this._applyTierState(tier, sessionsToday, presets, profiles);
+        this._checkProExpiry();
+        this._loadReferralSection();
       }
     );
   }
@@ -830,6 +868,68 @@ class UIInjector {
       this._showPaywall('Upgrade to Starter or higher for unlimited sessions and characters.');
     });
 
+    // ── Referral: toggle expand ──
+    el('sai-referral-toggle').addEventListener('click', () => {
+      const body    = el('sai-referral-body');
+      const chevron = el('sai-referral-chevron');
+      const open    = body.style.display !== 'none';
+      body.style.display    = open ? 'none' : 'block';
+      chevron.textContent   = open ? '▾' : '▴';
+    });
+
+    // ── Referral: copy link ──
+    el('sai-referral-copy').addEventListener('click', () => {
+      const linkEl = el('sai-referral-link');
+      if (!linkEl || !linkEl.value) return;
+      navigator.clipboard.writeText(linkEl.value).then(() => {
+        const btn = el('sai-referral-copy');
+        if (btn) { btn.textContent = 'Copied!'; setTimeout(() => { btn.textContent = 'Copy'; }, 2000); }
+      });
+    });
+
+    // ── Referral: claim code ──
+    el('sai-referral-claim-btn').addEventListener('click', () => {
+      const input  = el('sai-referral-code-input');
+      const status = el('sai-referral-claim-status');
+      const code   = input ? input.value.trim().toUpperCase() : '';
+      if (!code) return;
+
+      const btn = el('sai-referral-claim-btn');
+      if (btn) btn.disabled = true;
+      if (status) { status.textContent = 'Checking…'; status.className = 'sai-referral-claim-status'; }
+
+      chrome.runtime.sendMessage({ type: 'REFERRAL_CLAIM', code }, (res) => {
+        if (btn) btn.disabled = false;
+        if (!res || !res.success) {
+          const msgs = {
+            invalid_or_used: 'Code not found or already used.',
+            self_referral:   "You can't use your own referral code.",
+            already_claimed: 'You already applied a referral code.',
+            empty_code:      'Please enter a code first.',
+          };
+          if (status) {
+            status.textContent = msgs[res && res.reason] || 'Something went wrong. Try again.';
+            status.className   = 'sai-referral-claim-status sai-referral-err';
+          }
+          return;
+        }
+        // Success
+        if (status) {
+          status.textContent = '✓ 3 free Pro days added to your account!';
+          status.className   = 'sai-referral-claim-status sai-referral-ok';
+        }
+        const claimRow = el('sai-referral-claim-row');
+        if (claimRow) setTimeout(() => { claimRow.style.display = 'none'; }, 2500);
+        this._showToast('Referral code applied. 3 free Pro days unlocked! ✦');
+        this._loadState();
+      });
+    });
+
+    // Allow Enter key in code input
+    el('sai-referral-code-input').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') el('sai-referral-claim-btn').click();
+    });
+
     // ── Rating banner ──
     el('sai-rating-yes').addEventListener('click', () => {
       chrome.storage.local.set({ ratingAsked: true });
@@ -926,6 +1026,104 @@ class UIInjector {
 
     // ── Drag ──
     this._makeDraggable(panel, el('sai-typing-panel-drag'));
+  }
+
+  // ── Toast ─────────────────────────────────────────────────────────────────
+
+  _showToast(msg, durationMs = 4000) {
+    const toast = document.getElementById('sai-toast');
+    if (!toast) return;
+    toast.textContent = msg;
+    toast.style.display = 'block';
+    toast.classList.add('sai-toast-visible');
+    clearTimeout(this._toastTimer);
+    this._toastTimer = setTimeout(() => {
+      toast.classList.remove('sai-toast-visible');
+      setTimeout(() => { toast.style.display = 'none'; }, 300);
+    }, durationMs);
+  }
+
+  // ── Pro expiry check ──────────────────────────────────────────────────────
+
+  _checkProExpiry() {
+    chrome.storage.local.get(['proExpiresAt', 'tier'], (data) => {
+      if (!data.proExpiresAt) return;
+      if (data.proExpiresAt <= Date.now() && data.tier === 'pro') {
+        // Referral Pro days have expired — downgrade to free unless they have a license
+        chrome.storage.local.get(['licenseKey'], (lic) => {
+          if (!lic.licenseKey) {
+            chrome.storage.local.set({ tier: 'free' }, () => this._loadState());
+          }
+        });
+      } else if (data.proExpiresAt > Date.now()) {
+        // Show days remaining in a subtle way
+        const daysLeft = Math.ceil((data.proExpiresAt - Date.now()) / (24 * 60 * 60 * 1000));
+        const badge = document.getElementById('sai-pro-badge');
+        if (badge && daysLeft <= 3) {
+          badge.textContent = `${daysLeft}d left`;
+          badge.style.display = 'inline-block';
+        }
+      }
+    });
+  }
+
+  // ── Referral section ──────────────────────────────────────────────────────
+
+  _loadReferralSection() {
+    const el = (id) => document.getElementById(id);
+
+    // Generate / retrieve referral code
+    chrome.runtime.sendMessage({ type: 'REFERRAL_GENERATE' }, (res) => {
+      if (!res || !res.success) return;
+      const code    = res.code;
+      const extId   = chrome.runtime.id;
+      const link    = `https://chromewebstore.google.com/detail/${extId}?utm_source=referral&ref=${code}`;
+      const linkEl  = el('sai-referral-link');
+      if (linkEl) linkEl.value = link;
+    });
+
+    // Check for new referral rewards (rate-limited to once/hour in background)
+    chrome.runtime.sendMessage({ type: 'REFERRAL_STATUS' }, (res) => {
+      if (!res || !res.success) return;
+
+      // Show stats if they've referred anyone
+      if (res.totalReferrals > 0) {
+        const stats = el('sai-referral-stats');
+        if (stats) stats.style.display = 'flex';
+        const countEl = el('sai-referral-count');
+        const daysEl  = el('sai-referral-days');
+        if (countEl) countEl.textContent = `${res.totalReferrals} friend${res.totalReferrals !== 1 ? 's' : ''} joined`;
+        if (daysEl)  daysEl.textContent  = `${res.daysEarned} days earned`;
+      }
+
+      // Toast if new rewards came in since last check
+      if (res.newRewards > 0) {
+        const days = res.newRewards * 7;
+        this._showToast(`A friend joined TypeCloak. You earned ${days} free Pro day${days !== 1 ? 's' : ''}! ✦`);
+        this._loadState(); // refresh tier display
+      }
+    });
+
+    // Hide claim row if this install already claimed a code
+    chrome.storage.local.get(['referralClaimed', 'isFirstInstall'], (data) => {
+      const claimRow = el('sai-referral-claim-row');
+      const claimStatus = el('sai-referral-claim-status');
+      if (data.referralClaimed) {
+        if (claimRow) claimRow.style.display = 'none';
+        if (claimStatus) {
+          claimStatus.textContent = '✓ Referral code applied';
+          claimStatus.className   = 'sai-referral-claim-status sai-referral-ok';
+        }
+      }
+      // Auto-expand the section on first install to prompt for code entry
+      if (data.isFirstInstall && !data.referralClaimed) {
+        const body = el('sai-referral-body');
+        const chevron = el('sai-referral-chevron');
+        if (body) body.style.display = 'block';
+        if (chevron) chevron.textContent = '▴';
+        chrome.storage.local.set({ isFirstInstall: false });
+      }
+    });
   }
 
   // ── Rating prompt ─────────────────────────────────────────────────────────
