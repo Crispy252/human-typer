@@ -17,8 +17,8 @@ const debuggerTabs = new Set();
 // TODO: Replace with your Supabase project URL and anon key after creating the
 // project at supabase.com. The anon key is safe to use here — RLS is disabled
 // and the table only stores anonymous install IDs (random UUIDs).
-const SUPABASE_URL      = 'TODO_SUPABASE_URL';
-const SUPABASE_ANON_KEY = 'TODO_SUPABASE_ANON_KEY';
+const SUPABASE_URL      = 'https://gvcafmlvutiidgcfxgab.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd2Y2FmbWx2dXRpaWRnY2Z4Z2FiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg1OTc4NTUsImV4cCI6MjA5NDE3Mzg1NX0.CSpea4L0jnVMARu3oS6Nj2qTuTc2IJF7XWi0JCESwNA';
 
 const SUPABASE_HEADERS = {
   'Content-Type':  'application/json',
