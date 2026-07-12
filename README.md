@@ -1,5 +1,10 @@
 # TypeCloak
 
+> **Repositioning in progress.** The reusable core of this project — the human-typing
+> rhythm model — has been extracted into a standalone, pure, dependency-free package,
+> [`@cadence/engine`](packages/engine/), aimed at testing rich-text editors and recording
+> product demos. See the [build & scale plan](docs/BUILD_AND_SCALE_PLAN.md) for the strategy.
+
 **Invisible typing. Human results.**
 
 TypeCloak is a Chrome extension that types your text into Google Docs, Canvas, Blackboard, Moodle, and more — character by character, over a duration you set, with burst patterns, self-correcting typos, a fatigue curve, and stealth mode. It is indistinguishable from real human typing.

@@ -119,11 +119,15 @@ OSS-led growth. The library *is* the top of funnel; content and community conver
 
 ## 5. Execution roadmap
 
-**Weeks 1–2 — Extract & prove**
-- [ ] Pull the pure engine out of `typing-simulator.js` into `@cadence/engine` (TS, no DOM).
-- [ ] Unit tests on the statistical model (burst distribution, drift correction converges,
-      typo/correction invariants). This is now testable because it's pure.
-- [ ] Build the live playground (text in → animated preview + downloadable event trace).
+**Weeks 1–2 — Extract & prove**  ← _started; see `packages/engine/`_
+- [x] Pull the pure engine out of `typing-simulator.js` into `@cadence/engine` (TS, no DOM,
+      seedable RNG so CI runs are reproducible).
+- [x] Unit tests on the statistical model (burst distribution, fatigue curve, error zones,
+      seed determinism, and the reconstruction invariant — applying the stream reproduces the
+      input text exactly). 23 tests, run natively via `node --test`.
+- [x] Build the live playground (`packages/engine/playground/`) — text in → animated preview
+      + plan-JSON view, driven by the compiled engine.
+- [ ] Publish `@cadence/engine` to npm and wire the playground to a public URL.
 
 **Weeks 3–5 — The wedge**
 - [ ] `@cadence/playwright` wrapper + the "race condition caught by realistic timing" demo repo.
@@ -161,11 +165,14 @@ The whole point of the pivot is that the product is honest. Protect that deliber
 
 ---
 
-## 7. First concrete step
+## 7. First concrete step — done
 
-Extract `@cadence/engine` as a standalone pure-TS package with the playground. It's a weekend of
-work, it's the reusable core of everything above, and shipping it as OSS is simultaneously your
-product foundation *and* your first marketing asset. Everything else builds on that one artifact.
+`@cadence/engine` now exists as a standalone pure-TS package (`packages/engine/`): the
+burst/jitter/fatigue/typo model ported out of `typing-simulator.js`, stripped of all Chrome
+Debugger, DOM, storage, and paywall code, and made **deterministic** via a seedable RNG. It ships
+with 23 passing tests and a live playground. This is the reusable core of everything above and the
+first OSS marketing asset.
 
-I can start that extraction whenever you want — say the word and I'll scaffold the package,
-port the burst/jitter/drift/typo model out of `typing-simulator.js`, and stand up the playground.
+**Next**: build `@cadence/playground` into a public demo URL and start the `@cadence/playwright`
+wrapper (Weeks 3–5) — the paid wedge that drives into a real editor and reports timing-sensitive
+failures.
