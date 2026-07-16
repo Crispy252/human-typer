@@ -129,8 +129,14 @@ OSS-led growth. The library *is* the top of funnel; content and community conver
       + plan-JSON view, driven by the compiled engine.
 - [ ] Publish `@cadence/engine` to npm and wire the playground to a public URL.
 
-**Weeks 3–5 — The wedge**
-- [ ] `@cadence/playwright` wrapper + the "race condition caught by realistic timing" demo repo.
+**Weeks 3–5 — The wedge**  ← _started; see `packages/playwright/`_
+- [x] `@cadence/playwright` wrapper — `humanType(locator, text, opts)` drives the engine's
+      plan into a real page via genuine trusted key events; personas, deterministic seeds,
+      `speedFactor` for fast CI, `clear`/`focus`, and pre-built-plan execution. 8 real-browser
+      E2E tests (textarea + contenteditable, keydown-fires proof, determinism).
+- [ ] The "race condition caught by realistic timing" demo repo — a test that passes with
+      `fill()` but fails with `humanType`, because the editor had a real timing bug.
+- [ ] Cypress plugin (`@cadence/cypress`).
 - [ ] Docs site (Docusaurus/Nextra). Getting-started in <5 min.
 - [ ] Write and ship the launch blog post.
 
@@ -141,7 +147,6 @@ OSS-led growth. The library *is* the top of funnel; content and community conver
 
 **Weeks 9–12 — Second surface & tighten**
 - [ ] Ship Demo Studio (scoped extension) + Product Hunt launch.
-- [ ] Cypress plugin.
 - [ ] First case study published; start weekly content cadence.
 
 ---
@@ -173,6 +178,9 @@ Debugger, DOM, storage, and paywall code, and made **deterministic** via a seeda
 with 23 passing tests and a live playground. This is the reusable core of everything above and the
 first OSS marketing asset.
 
-**Next**: build `@cadence/playground` into a public demo URL and start the `@cadence/playwright`
-wrapper (Weeks 3–5) — the paid wedge that drives into a real editor and reports timing-sensitive
-failures.
+**Done next**: `@cadence/playwright` (`packages/playwright/`) — the paid wedge — now drives the
+engine into a real editor via genuine key events, with personas, deterministic seeds, and
+fast-CI scaling, verified by real-browser E2E tests.
+
+**Next**: a "race condition caught by realistic timing" demo repo (the artifact that sells the
+tool), then the Cypress plugin and the docs site / launch post.

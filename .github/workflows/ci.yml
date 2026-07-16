@@ -1,0 +1,41 @@
+name: ci
+
+on:
+  push:
+    paths:
+      - 'packages/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/ci.yml'
+  pull_request:
+    paths:
+      - 'packages/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/ci.yml'
+
+jobs:
+  engine:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-audit --no-fund
+      - run: npm test --workspace @cadence/engine
+      - run: npm run build --workspace @cadence/engine
+
+  playwright:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-audit --no-fund
+      # The wrapper imports the engine's build output at runtime.
+      - run: npm run build --workspace @cadence/engine
+      - run: npx playwright install --with-deps chromium
+      - run: npm test --workspace @cadence/playwright
+      - run: npm run build --workspace @cadence/playwright

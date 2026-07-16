@@ -3,7 +3,9 @@
 > **Repositioning in progress.** The reusable core of this project — the human-typing
 > rhythm model — has been extracted into a standalone, pure, dependency-free package,
 > [`@cadence/engine`](packages/engine/), aimed at testing rich-text editors and recording
-> product demos. See the [build & scale plan](docs/BUILD_AND_SCALE_PLAN.md) for the strategy.
+> product demos. A Playwright wrapper, [`@cadence/playwright`](packages/playwright/), drives
+> it into real pages via genuine key events. See the
+> [build & scale plan](docs/BUILD_AND_SCALE_PLAN.md) for the strategy.
 
 **Invisible typing. Human results.**
 
