@@ -1,0 +1,457 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Cadence — human-realistic typing for testing</title>
+<style>
+  :root {
+    --paper: #f3f4f1;
+    --raise: #ffffff;
+    --ink: #16191f;
+    --muted: #565c66;
+    --line: rgba(20, 25, 31, 0.12);
+    --accent: #0e7c86;
+    --accent-ink: #0a5b63;
+    --signal: #c77d33;
+    --pass: #1f8a4c;
+    --fail: #cf3b3b;
+    --pass-bg: rgba(31, 138, 76, 0.12);
+    --fail-bg: rgba(207, 59, 59, 0.12);
+    --mono: ui-monospace, "SF Mono", "JetBrains Mono", "Cascadia Code", Menlo, Consolas, monospace;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, Roboto, Helvetica, Arial, sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --paper: #0f1216;
+      --raise: #171b21;
+      --ink: #e9ebee;
+      --muted: #9aa2ad;
+      --line: rgba(255, 255, 255, 0.13);
+      --accent: #3bc0cc;
+      --accent-ink: #6fd6df;
+      --signal: #e0a04a;
+      --pass: #3fb970;
+      --fail: #ff6b6b;
+      --pass-bg: rgba(63, 185, 112, 0.14);
+      --fail-bg: rgba(255, 107, 107, 0.14);
+    }
+  }
+  :root[data-theme="light"] {
+    --paper: #f3f4f1; --raise: #ffffff; --ink: #16191f; --muted: #565c66;
+    --line: rgba(20,25,31,0.12); --accent: #0e7c86; --accent-ink: #0a5b63; --signal: #c77d33;
+    --pass: #1f8a4c; --fail: #cf3b3b; --pass-bg: rgba(31,138,76,0.12); --fail-bg: rgba(207,59,59,0.12);
+  }
+  :root[data-theme="dark"] {
+    --paper: #0f1216; --raise: #171b21; --ink: #e9ebee; --muted: #9aa2ad;
+    --line: rgba(255,255,255,0.13); --accent: #3bc0cc; --accent-ink: #6fd6df; --signal: #e0a04a;
+    --pass: #3fb970; --fail: #ff6b6b; --pass-bg: rgba(63,185,112,0.14); --fail-bg: rgba(255,107,107,0.14);
+  }
+
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: 17px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { width: min(1080px, 92vw); margin: 0 auto; }
+
+  /* ── top bar ─────────────────────────────────────────── */
+  header {
+    border-bottom: 1px solid var(--line);
+    position: sticky; top: 0; z-index: 10;
+    backdrop-filter: saturate(1.2) blur(8px);
+    background: color-mix(in srgb, var(--paper) 82%, transparent);
+  }
+  .bar { display: flex; align-items: center; justify-content: space-between; height: 58px; }
+  .brand { display: flex; align-items: baseline; gap: 9px; font-family: var(--mono); font-weight: 600; }
+  .brand b { font-size: 1.05rem; letter-spacing: -0.01em; }
+  .brand .blink { color: var(--accent); }
+  .brand .tag {
+    font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.14em;
+    color: var(--muted); border: 1px solid var(--line); padding: 2px 6px; border-radius: 999px;
+  }
+  .bar nav { display: flex; align-items: center; gap: 20px; }
+  .bar nav a { color: var(--muted); text-decoration: none; font-size: 0.9rem; font-family: var(--mono); }
+  .bar nav a:hover { color: var(--ink); }
+  .themebtn {
+    font-family: var(--mono); font-size: 0.8rem; color: var(--ink);
+    background: transparent; border: 1px solid var(--line); border-radius: 7px;
+    padding: 5px 10px; cursor: pointer;
+  }
+  .themebtn:hover { border-color: var(--accent); }
+  @media (max-width: 640px) { .bar nav .hidesm { display: none; } }
+
+  /* ── hero ────────────────────────────────────────────── */
+  .hero { padding: clamp(40px, 8vw, 84px) 0 24px; }
+  .eyebrow {
+    font-family: var(--mono); font-size: 0.74rem; text-transform: uppercase;
+    letter-spacing: 0.18em; color: var(--accent-ink); margin: 0 0 18px;
+  }
+  h1 {
+    font-size: clamp(2.3rem, 6vw, 4.1rem); line-height: 1.02; letter-spacing: -0.03em;
+    font-weight: 800; margin: 0; text-wrap: balance; max-width: 15ch;
+  }
+  h1 .u { color: var(--accent); }
+  .lede {
+    margin: 22px 0 0; font-size: clamp(1.05rem, 2.2vw, 1.25rem); color: var(--muted);
+    max-width: 56ch;
+  }
+
+  /* ── demo panel ──────────────────────────────────────── */
+  .demo { margin: 34px 0 0; }
+  .demo-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 12px; }
+  .demo-head p { margin: 0; font-family: var(--mono); font-size: 0.82rem; color: var(--muted); }
+  .run {
+    font-family: var(--mono); font-size: 0.92rem; font-weight: 600;
+    color: var(--paper); background: var(--accent); border: none; border-radius: 9px;
+    padding: 10px 20px; cursor: pointer; transition: transform 0.08s ease, filter 0.15s ease;
+  }
+  .run:hover { filter: brightness(1.06); }
+  .run:active { transform: translateY(1px); }
+  .run:disabled { opacity: 0.55; cursor: default; }
+  .run:focus-visible { outline: 3px solid color-mix(in srgb, var(--accent) 45%, transparent); outline-offset: 2px; }
+
+  .cards { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 720px) { .cards { grid-template-columns: 1fr; } }
+  .card {
+    background: var(--raise); border: 1px solid var(--line); border-radius: 14px;
+    overflow: hidden; display: flex; flex-direction: column;
+  }
+  .card-top {
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    padding: 12px 14px; border-bottom: 1px solid var(--line);
+  }
+  .method { font-family: var(--mono); font-size: 0.86rem; font-weight: 600; }
+  .method small { display: block; color: var(--muted); font-weight: 400; font-size: 0.74rem; margin-top: 1px; }
+  .chip {
+    font-family: var(--mono); font-size: 0.72rem; font-weight: 700; letter-spacing: 0.08em;
+    padding: 4px 9px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted);
+    white-space: nowrap;
+  }
+  .chip[data-state="pass"] { color: var(--pass); background: var(--pass-bg); border-color: transparent; }
+  .chip[data-state="fail"] { color: var(--fail); background: var(--fail-bg); border-color: transparent; }
+  .screen {
+    font-family: var(--mono); font-size: 1.02rem; padding: 18px 16px; min-height: 84px;
+    display: flex; align-items: center; gap: 1px; letter-spacing: 0.01em; word-break: break-word;
+  }
+  .caret {
+    display: inline-block; width: 0.6ch; height: 1.15em; background: var(--accent);
+    margin-left: 1px; translate: 0 2px;
+  }
+  .blinking { animation: blink 1.05s steps(1) infinite; }
+  @keyframes blink { 50% { opacity: 0; } }
+  @media (prefers-reduced-motion: reduce) { .blinking { animation: none; } }
+  .strip { border-top: 1px solid var(--line); padding: 9px 14px 12px; }
+  .strip .lbl { font-family: var(--mono); font-size: 0.66rem; text-transform: uppercase; letter-spacing: 0.13em; color: var(--muted); margin-bottom: 6px; }
+  canvas { display: block; width: 100%; height: 34px; }
+  .verdict {
+    margin-top: 14px; font-family: var(--mono); font-size: 0.88rem; color: var(--muted);
+    min-height: 1.4em; text-wrap: balance;
+  }
+  .verdict b { color: var(--ink); font-weight: 600; }
+
+  /* ── generic sections ────────────────────────────────── */
+  section { padding: clamp(46px, 8vw, 82px) 0; border-top: 1px solid var(--line); }
+  .kicker { font-family: var(--mono); font-size: 0.74rem; text-transform: uppercase; letter-spacing: 0.16em; color: var(--accent-ink); margin: 0 0 14px; }
+  h2 { font-size: clamp(1.6rem, 3.6vw, 2.3rem); letter-spacing: -0.02em; margin: 0; max-width: 20ch; text-wrap: balance; }
+  .prose { max-width: 60ch; color: var(--muted); font-size: 1.06rem; }
+  .prose strong { color: var(--ink); }
+
+  .triad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 34px; }
+  @media (max-width: 760px) { .triad { grid-template-columns: 1fr; } }
+  .feat { background: var(--raise); border: 1px solid var(--line); border-radius: 13px; padding: 22px; }
+  .feat h3 { margin: 0 0 8px; font-size: 1.05rem; letter-spacing: -0.01em; }
+  .feat .mono-k { font-family: var(--mono); font-size: 0.72rem; color: var(--accent-ink); letter-spacing: 0.04em; }
+  .feat p { margin: 6px 0 0; color: var(--muted); font-size: 0.96rem; }
+
+  .code {
+    margin-top: 26px; background: var(--raise); border: 1px solid var(--line); border-radius: 13px;
+    overflow-x: auto; font-family: var(--mono); font-size: 0.9rem; line-height: 1.7;
+  }
+  .code pre { margin: 0; padding: 20px 22px; }
+  .code .cm { color: var(--muted); }
+  .code .fn { color: var(--accent-ink); }
+  .code .st { color: var(--signal); }
+
+  footer { border-top: 1px solid var(--line); padding: 40px 0 60px; color: var(--muted); font-size: 0.9rem; }
+  footer .note { max-width: 62ch; }
+  footer a { color: var(--accent-ink); }
+  .fine { font-family: var(--mono); font-size: 0.72rem; margin-top: 18px; opacity: 0.85; }
+</style>
+</head>
+<body>
+  <header>
+    <div class="wrap bar">
+      <div class="brand">
+        <b>cadence<span class="blink">▮</span></b>
+        <span class="tag">working name</span>
+      </div>
+      <nav>
+        <a class="hidesm" href="#why">Why</a>
+        <a class="hidesm" href="#how">How</a>
+        <a href="#install">Install</a>
+        <button class="themebtn" id="theme" type="button" aria-label="Toggle color theme">◑ theme</button>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <div class="wrap hero">
+      <p class="eyebrow">Human-realistic typing for tests &amp; demos</p>
+      <h1>Your editor tests type nothing like a <span class="u">human</span>.</h1>
+      <p class="lede">
+        <code>fill()</code> pastes text in one shot and passes. Real users type one key at a time —
+        and rich-text editors break in the gaps. Cadence types like a person, so your tests catch
+        the bugs your users would.
+      </p>
+
+      <div class="demo" id="demo">
+        <div class="demo-head">
+          <p>Same buggy editor. Two ways to type into it. Watch the right one.</p>
+          <button class="run" id="run" type="button">▶ Run the tests</button>
+        </div>
+        <div class="cards">
+          <div class="card">
+            <div class="card-top">
+              <div class="method">fill()<small>instant paste</small></div>
+              <div class="chip" id="chip-fill" data-state="idle">IDLE</div>
+            </div>
+            <div class="screen"><span id="scr-fill"></span><span class="caret" id="car-fill"></span></div>
+            <div class="strip">
+              <div class="lbl">keystroke cadence</div>
+              <canvas id="cv-fill" width="480" height="34" aria-hidden="true"></canvas>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-top">
+              <div class="method">humanType()<small>real keystrokes</small></div>
+              <div class="chip" id="chip-human" data-state="idle">IDLE</div>
+            </div>
+            <div class="screen"><span id="scr-human"></span><span class="caret" id="car-human"></span></div>
+            <div class="strip">
+              <div class="lbl">keystroke cadence</div>
+              <canvas id="cv-human" width="480" height="34" aria-hidden="true"></canvas>
+            </div>
+          </div>
+        </div>
+        <p class="verdict" id="verdict">Press <b>Run</b>. The instant test goes green — even though the editor is broken.</p>
+      </div>
+    </div>
+
+    <section id="why">
+      <p class="kicker">The false green</p>
+      <h2>A passing test can be lying to you.</h2>
+      <div class="prose" style="margin-top:18px">
+        <p>
+          The editor in the demo runs an async normalize pass after every input — a completely
+          ordinary thing to do — but it mishandles the caret. Paste the whole string with
+          <strong>fill()</strong> and the normalize runs once, after everything's in place: green.
+          Type it a key at a time and the normalize fires <em>between</em> keystrokes, sending the
+          caret to the start, so <strong>“hello world” lands as “dlrow olleh.”</strong>
+        </p>
+        <p>
+          Same code. Same assertion. The only difference is timing — and timing is exactly what
+          instant-input tests throw away. Cadence puts it back.
+        </p>
+      </div>
+    </section>
+
+    <section id="how">
+      <p class="kicker">What you get</p>
+      <h2>Real keystrokes, made reproducible.</h2>
+      <div class="triad">
+        <div class="feat">
+          <div class="mono-k">keydown · keypress · input · keyup</div>
+          <h3>Genuine key events</h3>
+          <p>Every character is a real, trusted key press through the browser — not a value set or an
+             <code>insertText</code>. Editors see input the way a person produces it.</p>
+        </div>
+        <div class="feat">
+          <div class="mono-k">seed: "ci-42"</div>
+          <h3>Deterministic by seed</h3>
+          <p>The same seed replays the exact same keystrokes and timing. A flake you catch in CI is a
+             flake you can reproduce locally, on the first try.</p>
+        </div>
+        <div class="feat">
+          <div class="mono-k">fastDev · huntAndPeck · mobileThumb</div>
+          <h3>Typing personas</h3>
+          <p>Model a confident touch-typist, a two-finger hunter, or phone thumbs — each with its own
+             speed, burst rhythm, and error profile.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="install">
+      <p class="kicker">Drop-in for Playwright</p>
+      <h2>One function. Your existing tests.</h2>
+      <div class="code">
+<pre><span class="cm"># Playwright today</span>
+npm install -D <span class="st">@cadence/playwright</span> playwright
+
+<span class="cm">// your spec — swap fill() for humanType()</span>
+import { <span class="fn">humanType</span>, personas } from <span class="st">'@cadence/playwright'</span>;
+
+await <span class="fn">humanType</span>(page.locator(<span class="st">'.editor'</span>), <span class="st">'The quick brown fox.'</span>, {
+  ...personas.fastDev,
+  typoRate: <span class="st">0.05</span>,   <span class="cm">// real adjacent-key slips, self-corrected</span>
+  seed: <span class="st">'ci-42'</span>,    <span class="cm">// same keystrokes every run</span>
+});</pre>
+      </div>
+      <p class="prose" style="margin-top:20px">
+        Under the hood, the pure <strong>@cadence/engine</strong> turns text into a deterministic,
+        timed keystroke stream — burst-and-pause rhythm, jitter, fatigue, self-correcting typos.
+        A Cypress command is next.
+      </p>
+    </section>
+  </main>
+
+  <footer>
+    <div class="wrap">
+      <p class="note">
+        <strong style="color:var(--ink)">Cadence</strong> is a working name for a repositioning of an
+        existing typing engine toward honest, paying uses — testing rich-text editors and recording
+        product demos. It is a product concept, not a registered company or a real service you can buy
+        yet.
+      </p>
+      <p class="fine">MIT-licensed core · @cadence/engine · @cadence/playwright · demo: “hello world” → “dlrow olleh”</p>
+    </div>
+  </footer>
+
+  <script>
+    // ── theme toggle (standalone page; the artifact viewer also stamps data-theme) ──
+    (function () {
+      var root = document.documentElement;
+      try {
+        var saved = localStorage.getItem('cadence-theme');
+        if (saved) root.setAttribute('data-theme', saved);
+      } catch (e) {}
+      document.getElementById('theme').addEventListener('click', function () {
+        var cur = root.getAttribute('data-theme');
+        if (!cur) cur = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+        var next = cur === 'dark' ? 'light' : 'dark';
+        root.setAttribute('data-theme', next);
+        try { localStorage.setItem('cadence-theme', next); } catch (e) {}
+      });
+    })();
+
+    // ── a tiny, seeded slice of the engine, just for the live demo ──
+    function mulberry32(a) {
+      return function () {
+        a |= 0; a = (a + 0x6d2b79f5) | 0;
+        var t = Math.imul(a ^ (a >>> 15), 1 | a);
+        t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+      };
+    }
+    function hashSeed(s) { var h = 2166136261 >>> 0; for (var i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; }
+
+    // Per-character delays with burst/pause rhythm (the engine's shape, condensed).
+    function planDelays(text, seed) {
+      var rnd = mulberry32(hashSeed(seed));
+      var base = 118, out = [], burst = Math.floor(-Math.log(rnd() + 0.001) * 6) + 3;
+      for (var i = 0; i < text.length; i++) {
+        if (burst === 0) { out.push({ ch: text[i], d: 340 + rnd() * 520, pause: true }); burst = Math.floor(-Math.log(rnd() + 0.001) * 6) + 3; }
+        else { var jit = (rnd() + rnd() + rnd() - 1.5) / 1.5; out.push({ ch: text[i], d: Math.max(46, base * 0.75 * (1 + jit * 0.5)), pause: false }); }
+        burst--;
+      }
+      return out;
+    }
+
+    var TEXT = 'hello world';
+    var reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    var running = false;
+
+    function setChip(id, state, label) { var c = document.getElementById(id); c.setAttribute('data-state', state); c.textContent = label; }
+    function drawTicks(canvasId, times, total, color) {
+      var cv = document.getElementById(canvasId); var ctx = cv.getContext('2d');
+      var w = cv.width, h = cv.height; ctx.clearRect(0, 0, w, h);
+      var mid = Math.round(h / 2);
+      ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--line');
+      ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(0, mid + 0.5); ctx.lineTo(w, mid + 0.5); ctx.stroke();
+      ctx.strokeStyle = color; ctx.lineWidth = 2;
+      for (var i = 0; i < times.length; i++) {
+        var x = Math.round((times[i] / total) * (w - 6)) + 3;
+        ctx.beginPath(); ctx.moveTo(x, 5); ctx.lineTo(x, h - 5); ctx.stroke();
+      }
+    }
+
+    function finish(reversed) {
+      setChip('chip-fill', 'pass', 'PASS');
+      setChip('chip-human', 'fail', 'FAIL');
+      document.getElementById('car-fill').classList.add('blinking');
+      document.getElementById('car-human').classList.add('blinking');
+      document.getElementById('verdict').innerHTML =
+        'fill() typed <b>“hello world”</b> and passed — the bug is hidden. humanType() typed the same ' +
+        'string key by key and the editor produced <b>“' + reversed + '”</b>. Only realistic timing caught it.';
+      document.getElementById('run').disabled = false;
+      running = false;
+    }
+
+    function run() {
+      if (running) return;
+      running = true;
+      var runBtn = document.getElementById('run');
+      runBtn.disabled = true;
+      var accent = getComputedStyle(document.documentElement).getPropertyValue('--accent');
+      var signal = getComputedStyle(document.documentElement).getPropertyValue('--signal');
+
+      // reset
+      var sf = document.getElementById('scr-fill'), sh = document.getElementById('scr-human');
+      sf.textContent = ''; sh.textContent = '';
+      setChip('chip-fill', 'idle', 'RUNNING'); setChip('chip-human', 'idle', 'RUNNING');
+      document.getElementById('car-fill').classList.remove('blinking');
+      document.getElementById('car-human').classList.remove('blinking');
+      document.getElementById('verdict').textContent = 'Typing…';
+
+      var plan = planDelays(TEXT, 'ci-42');
+      var total = plan.reduce(function (a, e) { return a + e.d; }, 0);
+      var times = []; var acc = 0;
+      for (var i = 0; i < plan.length; i++) { acc += plan[i].d; times.push(acc); }
+
+      // fill(): instant + a single dense tick block
+      sf.textContent = TEXT;
+      drawTicks('cv-fill', [total * 0.5], total, accent);
+
+      // reversed target for the buggy human run
+      var reversed = TEXT.split('').reverse().join('');
+
+      if (reduce) {
+        sh.textContent = reversed;
+        drawTicks('cv-human', times, total, signal);
+        finish(reversed);
+        return;
+      }
+
+      // humanType(): animate, inserting each char at the FRONT (the caret-reset bug)
+      var buf = '', shown = [], t0 = performance.now(), idx = 0;
+      function step() {
+        if (idx >= plan.length) { drawTicks('cv-human', times, total, signal); finish(reversed); return; }
+        buf = plan[idx].ch + buf;         // prepend = the bug, live
+        sh.textContent = buf;
+        shown.push(times[idx]);
+        drawTicks('cv-human', shown, total, signal);
+        idx++;
+        setTimeout(step, Math.min(plan[idx - 1].d, 620) * 0.9);
+      }
+      setTimeout(step, 120);
+    }
+
+    document.getElementById('run').addEventListener('click', run);
+    // draw idle baselines
+    window.addEventListener('load', function () {
+      var accent = getComputedStyle(document.documentElement).getPropertyValue('--accent');
+      var signal = getComputedStyle(document.documentElement).getPropertyValue('--signal');
+      drawTicks('cv-fill', [], 1, accent); drawTicks('cv-human', [], 1, signal);
+      document.getElementById('car-fill').classList.add('blinking');
+      document.getElementById('car-human').classList.add('blinking');
+    });
+  </script>
+</body>
+</html>

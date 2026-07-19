@@ -1,0 +1,17 @@
+{
+  "name": "cadence-monorepo",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Cadence — human-realistic typing engine and tooling.",
+  "workspaces": [
+    "packages/*",
+    "examples/*"
+  ],
+  "scripts": {
+    "build": "npm run build --workspace @cadence/engine && npm run build --workspace @cadence/playwright && npm run build --workspace @cadence/cypress && npm run build --workspace @cadence/ai",
+    "typecheck": "npm run typecheck --workspace @cadence/playwright && npm run typecheck --workspace @cadence/cypress && npm run typecheck --workspace @cadence/ai",
+    "test:unit": "npm test --workspace @cadence/engine && npm test --workspace @cadence/cypress && npm test --workspace @cadence/ai",
+    "test:browser": "npm test --workspace @cadence/playwright && npm test --workspace @cadence/example-race-demo",
+    "test": "npm run test:unit && npm run test:browser"
+  }
+}

@@ -32,5 +32,10 @@ Thumbs.db
 # Extension
 extension/icons/*.png
 
+# Node
+node_modules/
+packages/**/dist/
+npm-debug.log*
+
 # Native host manifest (contains user-specific Extension ID)
 *.json.user

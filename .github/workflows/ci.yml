@@ -1,0 +1,70 @@
+name: ci
+
+on:
+  push:
+    paths:
+      - 'packages/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/ci.yml'
+  pull_request:
+    paths:
+      - 'packages/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/ci.yml'
+
+jobs:
+  engine:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-audit --no-fund
+      - run: npm test --workspace @cadence/engine
+      - run: npm run build --workspace @cadence/engine
+
+  cypress:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      # Cypress itself is an optional peer — the unit tests use a fake `cy`,
+      # so no browser or Cypress binary is needed here.
+      - run: npm install --no-audit --no-fund
+      - run: npm run build --workspace @cadence/engine
+      - run: npm test --workspace @cadence/cypress
+      - run: npm run build --workspace @cadence/cypress
+
+  ai:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      # The AI package's tests are pure — no API key or network needed.
+      - run: npm install --no-audit --no-fund
+      - run: npm run build --workspace @cadence/engine
+      - run: npm test --workspace @cadence/ai
+      - run: npm run build --workspace @cadence/ai
+
+  playwright:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-audit --no-fund
+      # The wrapper and the demo import the built packages at runtime.
+      - run: npm run build --workspace @cadence/engine
+      - run: npm run build --workspace @cadence/playwright
+      - run: npx playwright install --with-deps chromium
+      - run: npm test --workspace @cadence/playwright
+      # The demo: proves fill() hides a timing bug that humanType catches.
+      - run: npm test --workspace @cadence/example-race-demo

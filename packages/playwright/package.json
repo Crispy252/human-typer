@@ -1,0 +1,62 @@
+{
+  "name": "@cadence/playwright",
+  "version": "0.1.0",
+  "description": "Human-realistic typing for Playwright — drive @cadence/engine into real editors to surface timing-sensitive bugs.",
+  "type": "module",
+  "license": "MIT",
+  "author": "the Cadence authors",
+  "homepage": "https://github.com/Crispy252/TypeCloak/tree/main/packages/playwright#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Crispy252/TypeCloak.git",
+    "directory": "packages/playwright"
+  },
+  "bugs": "https://github.com/Crispy252/TypeCloak/issues",
+  "keywords": [
+    "playwright",
+    "typing",
+    "human",
+    "testing",
+    "e2e",
+    "rich-text",
+    "editor",
+    "keystroke",
+    "deterministic"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist",
+    "src",
+    "README.md"
+  ],
+  "scripts": {
+    "test": "node --test \"test/*.test.ts\"",
+    "build": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\" && tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@cadence/engine": "^0.1.0"
+  },
+  "peerDependencies": {
+    "playwright": ">=1.30.0"
+  },
+  "peerDependenciesMeta": {
+    "playwright": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "playwright": "^1.50.0",
+    "typescript": "^5.7.0"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

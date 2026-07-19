@@ -1,0 +1,37 @@
+<!doctype html>
+<meta charset="utf-8" />
+<title>Buggy editor</title>
+<!--
+  A deliberately buggy editor that reproduces a real, common class of bug:
+  an async "normalize/sanitize" pass that runs after input and re-renders the
+  field from the model — but mismanages the caret, resetting it to the start.
+
+  Many real rich-text editors run exactly this kind of post-input normalization
+  (sanitizing pasted markup, collapsing whitespace, re-rendering from a model).
+  The caret bug is invisible when text arrives all at once (the normalize runs
+  once, after everything is already in place) but corrupts input when characters
+  arrive with human timing, because the normalize fires *between* keystrokes and
+  sends the caret back to position 0 — so each new character is inserted at the
+  front, reversing the text.
+-->
+<textarea id="editor" rows="6" cols="60" aria-label="editor"></textarea>
+<script>
+  const editor = document.getElementById('editor');
+  let model = '';
+  let pending = null;
+
+  editor.addEventListener('input', () => {
+    model = editor.value;
+    if (pending !== null) return; // coalesce bursts
+    pending = setTimeout(() => {
+      pending = null;
+      // Re-render the field from the model (a normal thing editors do)…
+      editor.value = model;
+      // …but reset the caret to the start. THIS is the bug.
+      editor.setSelectionRange(0, 0);
+    }, 5);
+  });
+
+  // Test hook: the editor's current visible value.
+  window.getEditorValue = () => editor.value;
+</script>

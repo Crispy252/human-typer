@@ -1,0 +1,61 @@
+{
+  "name": "@cadence/cypress",
+  "version": "0.1.0",
+  "description": "Human-realistic typing for Cypress — a cy.humanType() command backed by @cadence/engine.",
+  "type": "module",
+  "license": "MIT",
+  "author": "the Cadence authors",
+  "homepage": "https://github.com/Crispy252/TypeCloak/tree/main/packages/cypress#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Crispy252/TypeCloak.git",
+    "directory": "packages/cypress"
+  },
+  "bugs": "https://github.com/Crispy252/TypeCloak/issues",
+  "keywords": [
+    "cypress",
+    "typing",
+    "human",
+    "testing",
+    "e2e",
+    "rich-text",
+    "editor",
+    "keystroke",
+    "deterministic"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist",
+    "src",
+    "README.md"
+  ],
+  "scripts": {
+    "test": "node --test \"test/*.test.ts\"",
+    "build": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\" && tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@cadence/engine": "^0.1.0"
+  },
+  "peerDependencies": {
+    "cypress": ">=12.0.0"
+  },
+  "peerDependenciesMeta": {
+    "cypress": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "typescript": "^5.7.0"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

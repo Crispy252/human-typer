@@ -1,0 +1,51 @@
+{
+  "name": "@cadence/ai",
+  "version": "0.1.0",
+  "description": "Plain-English → a validated, executable Cadence session, authored by Claude (Fable 5 by default).",
+  "type": "module",
+  "license": "MIT",
+  "author": "the Cadence authors",
+  "homepage": "https://github.com/Crispy252/TypeCloak/tree/main/packages/ai#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Crispy252/TypeCloak.git",
+    "directory": "packages/ai"
+  },
+  "bugs": "https://github.com/Crispy252/TypeCloak/issues",
+  "keywords": [
+    "ai",
+    "llm",
+    "claude",
+    "anthropic",
+    "typing",
+    "testing",
+    "e2e",
+    "playwright",
+    "cypress"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist",
+    "src",
+    "README.md"
+  ],
+  "scripts": {
+    "test": "node --test \"test/*.test.ts\"",
+    "build": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\" && tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@cadence/engine": "^0.1.0",
+    "@anthropic-ai/sdk": "^0.70.0"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
