@@ -146,7 +146,8 @@ OSS-led growth. The library *is* the top of funnel; content and community conver
       optional peer, so CI needs no browser). Personas moved into the engine so both wrappers
       share them.
 - [ ] Docs site (Docusaurus/Nextra). Getting-started in <5 min.
-- [ ] Write and ship the launch blog post.
+- [x] Draft the launch blog post (`docs/launch-post.md`) — "Your editor tests type nothing like
+      a human," grounded in the race-demo, with the honest-repositioning note.
 
 **Weeks 6–8 — Launch & sell**
 - [ ] HN / Reddit / Lobsters launch of the OSS engine + post.
