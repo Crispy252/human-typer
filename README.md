@@ -1,164 +1,86 @@
-# TypeCloak
+# Cadence
 
-> **Repositioning in progress.** The reusable core of this project — the human-typing
-> rhythm model — has been extracted into a standalone, pure, dependency-free package,
-> [`@cadence/engine`](packages/engine/), aimed at testing rich-text editors and recording
-> product demos. A Playwright wrapper, [`@cadence/playwright`](packages/playwright/), drives
-> it into real pages via genuine key events. A [runnable demo](examples/race-demo/) shows a
-> real timing bug that `fill()` hides and `humanType` catches, and a
-> [landing page](site/index.html) with a live in-browser version of that demo. See the
-> [build & scale plan](docs/BUILD_AND_SCALE_PLAN.md) for the strategy.
+**Human-realistic typing for testing and demos.** Cadence types text into a page the way a
+*person* does — burst-and-pause rhythm, natural jitter, fatigue, self-correcting typos — instead
+of pasting it in one instant, perfect shot. That difference is the point: rich-text editors have
+timing bugs that only appear at human speed, and instant-input tests sail right past them.
 
-**Invisible typing. Human results.**
+```ts
+import { humanType, personas } from '@cadence/playwright';
 
-TypeCloak is a Chrome extension that types your text into Google Docs, Canvas, Blackboard, Moodle, and more — character by character, over a duration you set, with burst patterns, self-correcting typos, a fatigue curve, and stealth mode. It is indistinguishable from real human typing.
+await humanType(page.locator('.editor'), 'The quick brown fox.', {
+  ...personas.fastDev,
+  typoRate: 0.05,   // real adjacent-key slips, self-corrected with Backspace
+  seed: 'ci-42',    // same seed → identical keystrokes every run
+});
+```
 
-No API keys. No accounts. No data leaves your browser.
+## The pitch, in one demo
 
-<img width="1382" height="674" alt="Image" src="https://github.com/user-attachments/assets/86b4380a-1a78-4480-a850-82598e9a823c" />
----
+The same editor, typed two ways:
 
-## Install
+| How the test types | Editor shows | Result |
+|---|---|---|
+| `locator.fill('hello world')` | `hello world` | passes — **the bug is hidden** |
+| `humanType(locator, 'hello world')` | `dlrow olleh` | **catches the bug** |
 
-1. Clone or download this repo.
-2. Go to `chrome://extensions/` and enable **Developer Mode** (top-right toggle).
-3. Click **Load unpacked** and select the `extension/` folder.
-4. Open any supported page — the **TypeCloak** panel appears in the top-right corner.
-5. Use **Ctrl+Shift+Y** (or **Cmd+Shift+Y** on Mac) to open the panel and start typing from anywhere. Right-click any editable field and choose **Type with TypeCloak ✦** to do the same.
+That editor runs a perfectly ordinary async normalize pass after each input, but mishandles the
+caret. `fill()` pastes everything at once, so the normalize runs once, harmlessly — green, and
+falsely reassuring. `humanType()` types a key at a time, the normalize fires *between*
+keystrokes, and the text comes out reversed. Run it yourself in
+[`examples/race-demo/`](examples/race-demo/), or watch it live on the
+[landing page](site/index.html).
 
----
+## Packages
 
-## Supported platforms
-
-| Platform | Coverage |
+| Package | What it is |
 |---|---|
-| Google Docs | Full support (all document types) |
-| Google Slides | Full support |
-| Google Forms | Full support |
-| Canvas LMS | Full support |
-| Blackboard | Full support |
-| Moodle | Full support |
+| [`@cadence/engine`](packages/engine/) | The pure, dependency-free core. `planTyping(text, config)` → a deterministic, timed keystroke event stream. No DOM, no browser. Seedable, so runs reproduce exactly. |
+| [`@cadence/playwright`](packages/playwright/) | The Playwright wrapper. `humanType(locator \| page, text, opts)` drives the plan into a real page via genuine `keydown`/`keypress`/`input`/`keyup` events — not `fill()`/`insertText`. |
+| [`examples/race-demo`](examples/race-demo/) | The demo above, as four green tests: `fill()` gives false confidence; `humanType` catches the bug; the fix holds. |
 
----
+## Why it works
 
-## How to use
+`element.value = "…"` and naive `sendKeys` type at machine speed with perfect timing. People
+don't — they burst, pause, slow down, and fix mistakes. Editors (Google-Docs-style collaborative
+editors, ProseMirror, TipTap, Lexical, Quill, Slate) have races and input-handling bugs that only
+surface under real per-keystroke timing. Cadence reproduces that timing with real key events —
+**and does it deterministically**, so a failure in CI is a failure you can replay locally from the
+same seed.
 
-1. Paste your text into the **Text to type** box.
-2. Pick a **Speed preset** (Slow / Casual / Normal / Quick / Fast) — duration is calculated automatically from word count, or set it manually.
-3. Toggle any premium features you want (Stealth Mode, Fatigue Curve, Smart Error Zones).
-4. Click **▶ Start**. You have 3 seconds to click inside the document and place your cursor exactly where you want typing to begin.
-5. Use **⏸ Pause / ▶ Resume** or **⏹ Stop** at any time. If you stop mid-session, TypeCloak offers to **Resume** from where it left off the next time you open the panel.
-6. Click **◎** in the header to enter **Focus Mode** — the panel collapses to a minimal floating progress ring so it stays out of your way.
+## Who it's for
 
----
+- **Engineers and QA teams** building web apps with text editors — especially teams shipping
+  collaborative or rich-text editors — who already test with Playwright (Cypress next). They slot
+  `humanType` into existing specs to catch timing bugs before users do.
+- **Developer relations, marketing, and course creators** who record product demos and want
+  on-screen typing that looks human, not robotic.
 
-## Settings
+## Getting started
 
-### Speed presets
+```bash
+git clone <this repo> && cd TypeCloak
+npm install
+npm run build --workspace @cadence/engine
+npm run build --workspace @cadence/playwright
+npm test                                   # engine unit tests
+npm test --workspace @cadence/playwright   # real-browser E2E
+npm test --workspace @cadence/example-race-demo
+```
 
-| Preset | WPM | Variability | Typo rate |
-|---|---|---|---|
-| Slow | 25 | 20% | 2% |
-| Casual | 45 | 35% | 3% |
-| Normal | 65 | 45% | 4% |
-| Quick | 90 | 60% | 6% |
-| Fast | 120 | 75% | 8% |
+See [`docs/BUILD_AND_SCALE_PLAN.md`](docs/BUILD_AND_SCALE_PLAN.md) for the product and go-to-market
+plan.
 
-Duration is auto-calculated from your text length and chosen WPM. You can override it manually.
+## Origins
 
-### Manual controls
+This repository began as **TypeCloak**, a Chrome extension that typed into LMS platforms to make
+work look hand-typed — a use aimed at defeating academic-integrity checks. Cadence keeps the
+genuinely valuable part of that project (the human-typing engine) and repositions it toward honest,
+paying uses: testing editors and recording demos. The legacy extension still lives under
+[`extension/`](extension/) (documented in [`extension/README.md`](extension/README.md)) and is
+being retired in favour of the packages above; the rationale and plan are in
+[`docs/BUILD_AND_SCALE_PLAN.md`](docs/BUILD_AND_SCALE_PLAN.md).
 
-| Setting | What it does |
-|---|---|
-| **Duration (min)** | Total time the session should last. TypeCloak paces itself to finish exactly within this window using drift correction. |
-| **Speed variability** | How much per-keystroke delay varies. 0% = perfectly even; 100% = very erratic. ~40% is natural. |
-| **Typo rate** | Probability of hitting a wrong adjacent QWERTY key. TypeCloak notices after 0–4 characters and backspaces to fix it. 3% is subtle; 8%+ is noticeable. |
+## License
 
-### Premium features
-
-| Feature | What it does |
-|---|---|
-| **Stealth Mode** | Adds micro-hesitations inside bursts and 0.8–2.8 s reading pauses after paragraph breaks — makes keystroke-timing analysis fail. |
-| **Fatigue Curve** | Speed decays exponentially over the session (up to 35% slower by the end). Completely natural — no real person types at constant speed for 30 minutes. |
-| **Smart Error Zones** | Typo probability follows a bell curve peaking at 40–60% through each word, matching real QWERTY error patterns. Mid-word misses are far more common than first/last-character errors. |
-| **Text Presets** | Save up to 5 texts and reload them instantly. |
-| **Typing Profiles** | Save up to 5 named settings configurations (speed, variability, typo rate, all toggles). |
-
----
-
-## Free vs Paid
-
-| | Free | Starter | Pro | Max |
-|---|---|---|---|---|
-| Sessions per day | 3 | Unlimited | Unlimited | Unlimited |
-| Characters per session | 500 | Unlimited | Unlimited | Unlimited |
-| Speed presets | ✓ | ✓ | ✓ | ✓ |
-| Sentence Intelligence | ✓ | ✓ | ✓ | ✓ |
-| Resume from interruption | ✓ | ✓ | ✓ | ✓ |
-| Focus Mode | ✓ | ✓ | ✓ | ✓ |
-| Stealth Mode | — | ✓ | ✓ | ✓ |
-| Fatigue Curve | — | ✓ | ✓ | ✓ |
-| Smart Error Zones | — | — | ✓ | ✓ |
-| Text Presets (×5) | — | — | ✓ | ✓ |
-| Typing Profiles (×5) | — | — | ✓ | ✓ |
-| Priority support | — | — | — | ✓ |
-
-**Starter** — $2.99/month · **Pro** — $4.99/month · **Max** — $9.99/month
-
-All plans via Gumroad. Cancel anytime. Enter your license key in the panel to unlock instantly.
-
----
-
-## How it works
-
-Google Docs (and most LMS editors) ignore synthetic browser events because they have `isTrusted: false`. TypeCloak works around this using the **Chrome Debugger Protocol (CDP)** to fire real, browser-trusted `Input.dispatchKeyEvent` commands — the same mechanism Chrome DevTools uses internally. This is the only reliable way to inject keystrokes into Google Docs from an extension without a native app.
-
-### Typing engine
-
-**Rhythm**
-- Characters are typed in short *bursts* (Poisson-distributed, mean ~10 chars), separated by 300–1500 ms thinking pauses.
-- Per-keystroke delay is jittered using a CLT-approximated normal distribution (sum of 3 uniform samples).
-- A drift-correction loop tracks elapsed vs. target time and adjusts each delay to keep the session on schedule.
-
-**Sentence Intelligence**
-- After `.`, `?`, or `!` followed by a space, TypeCloak pauses 250–900 ms before the next sentence — scaled to stay within the overall duration budget.
-
-**Typos**
-- A wrong QWERTY-adjacent key is typed, then after 0–4 characters TypeCloak pauses (~400 ms), backspaces to the error, and retypes the correct characters at a slightly faster "correction" speed.
-- With **Smart Error Zones** on, typo probability peaks mid-word using a Gaussian curve — far more realistic than uniform random errors.
-
-**Fatigue Curve**
-- With **Fatigue Curve** on, the base keystroke delay is multiplied by `1 + 0.35 × (e^(2p) − 1) / (e² − 1)` where `p` is progress 0→1. This produces a natural exponential slowdown — barely noticeable at first, obvious by the end of a long session.
-
-**Stealth Mode**
-- After every `\n`, TypeCloak sleeps 800–2800 ms to simulate re-reading what was typed.
-- Inside bursts, there is a 6% chance of a 100–450 ms micro-hesitation.
-
-### Resume from interruption
-- Position is saved to `chrome.storage.session` every 15 characters and on every pause.
-- If the session is stopped, the saved state is preserved. On the next panel open, a banner offers to resume with the chars-remaining count shown.
-- State expires after 24 hours and is cleared on clean session completion.
-
-### Permissions used
-
-| Permission | Why |
-|---|---|
-| `debugger` | Attach CDP to send trusted keypresses |
-| `storage` | Save license key, presets, profiles, and resume state |
-| `contextMenus` | "Type with TypeCloak ✦" right-click menu on editable fields |
-
-> While TypeCloak is typing, Chrome displays a **"Chrome is being debugged"** banner at the top of the page. This is a Chrome security feature and cannot be suppressed. It disappears as soon as typing finishes or is stopped.
-
----
-
-## Keyboard shortcut
-
-**Ctrl+Shift+Y** (Windows/Linux) · **Cmd+Shift+Y** (Mac)
-
-Opens the TypeCloak panel and immediately triggers Start if the panel was already open. Also available by right-clicking any editable field.
-
----
-
-## Privacy
-
-TypeCloak runs entirely locally. The only outbound network request is the optional Gumroad license verification call (`POST https://api.gumroad.com/v2/licenses/verify`) when you enter a license key. Your text is never transmitted anywhere.
+MIT — see [LICENSE](LICENSE).
