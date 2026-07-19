@@ -6,5 +6,12 @@
   "workspaces": [
     "packages/*",
     "examples/*"
-  ]
+  ],
+  "scripts": {
+    "build": "npm run build --workspace @cadence/engine && npm run build --workspace @cadence/playwright && npm run build --workspace @cadence/cypress",
+    "typecheck": "npm run typecheck --workspace @cadence/playwright && npm run typecheck --workspace @cadence/cypress",
+    "test:unit": "npm test --workspace @cadence/engine && npm test --workspace @cadence/cypress",
+    "test:browser": "npm test --workspace @cadence/playwright && npm test --workspace @cadence/example-race-demo",
+    "test": "npm run test:unit && npm run test:browser"
+  }
 }

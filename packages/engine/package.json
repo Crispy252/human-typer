@@ -39,7 +39,7 @@
   ],
   "scripts": {
     "test": "node --test \"test/*.test.ts\"",
-    "build": "tsc -p tsconfig.json",
+    "build": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\" && tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "playground": "node -e \"const h=require('http'),f=require('fs'),p=require('path');h.createServer((q,s)=>{let u=q.url==='/'?'/playground/index.html':decodeURIComponent(q.url.split('?')[0]);let fp=p.join(process.cwd(),u);f.readFile(fp,(e,d)=>{if(e){s.writeCode=404;s.statusCode=404;return s.end('404');}const t=u.endsWith('.js')?'text/javascript':u.endsWith('.html')?'text/html':'text/plain';s.setHeader('content-type',t);s.end(d);});}).listen(4173,()=>console.log('Playground: http://localhost:4173/'));\""
   },
