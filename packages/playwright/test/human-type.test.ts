@@ -125,3 +125,21 @@ test('a persona config types the exact text', { timeout: 30000 }, async () => {
   assert.equal(await page.locator('#ta').inputValue(), text);
   await page.close();
 });
+
+test('multiline text types real newlines (Enter) into a textarea', { timeout: 30000 }, async () => {
+  const page = await freshPage();
+  const text = 'first line.\nsecond line, with a typo zone.\nthird!';
+  await humanType(page.locator('#ta'), text, { ...FAST, typoRate: 0.2, seed: 'multi' });
+  assert.equal(await page.locator('#ta').inputValue(), text);
+  await page.close();
+});
+
+test('the durationMs option types the exact text', { timeout: 30000 }, async () => {
+  const page = await freshPage();
+  const text = 'paced to a fixed budget';
+  const plan = await humanType(page.locator('#ta'), text, { ...FAST, durationMs: 30000, seed: 'dur' });
+  assert.equal(await page.locator('#ta').inputValue(), text);
+  // The plan itself is normalised to the requested duration (execution is sped up separately).
+  assert.ok(Math.abs(plan.totalMs - 30000) < 1e-6);
+  await page.close();
+});
