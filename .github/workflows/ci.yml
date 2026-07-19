@@ -26,6 +26,20 @@ jobs:
       - run: npm test --workspace @cadence/engine
       - run: npm run build --workspace @cadence/engine
 
+  cypress:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      # Cypress itself is an optional peer — the unit tests use a fake `cy`,
+      # so no browser or Cypress binary is needed here.
+      - run: npm install --no-audit --no-fund
+      - run: npm run build --workspace @cadence/engine
+      - run: npm test --workspace @cadence/cypress
+      - run: npm run build --workspace @cadence/cypress
+
   playwright:
     runs-on: ubuntu-latest
     steps:

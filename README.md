@@ -37,6 +37,7 @@ keystrokes, and the text comes out reversed. Run it yourself in
 |---|---|
 | [`@cadence/engine`](packages/engine/) | The pure, dependency-free core. `planTyping(text, config)` → a deterministic, timed keystroke event stream. No DOM, no browser. Seedable, so runs reproduce exactly. |
 | [`@cadence/playwright`](packages/playwright/) | The Playwright wrapper. `humanType(locator \| page, text, opts)` drives the plan into a real page via genuine `keydown`/`keypress`/`input`/`keyup` events — not `fill()`/`insertText`. |
+| [`@cadence/cypress`](packages/cypress/) | The Cypress command. `cy.get(sel).humanType(text, opts)` types with the engine's cadence instead of instant `.type()`. |
 | [`examples/race-demo`](examples/race-demo/) | The demo above, as four green tests: `fill()` gives false confidence; `humanType` catches the bug; the fix holds. |
 
 ## Why it works
@@ -51,7 +52,7 @@ same seed.
 ## Who it's for
 
 - **Engineers and QA teams** building web apps with text editors — especially teams shipping
-  collaborative or rich-text editors — who already test with Playwright (Cypress next). They slot
+  collaborative or rich-text editors — who already test with Playwright or Cypress. They slot
   `humanType` into existing specs to catch timing bugs before users do.
 - **Developer relations, marketing, and course creators** who record product demos and want
   on-screen typing that looks human, not robotic.

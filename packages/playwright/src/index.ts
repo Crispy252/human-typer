@@ -6,9 +6,9 @@
  */
 export { humanType, executePlan } from './human-type.ts';
 export type { HumanTypeOptions } from './human-type.ts';
-export { personas } from './personas.ts';
-export type { PersonaName } from './personas.ts';
 
 // Re-exported for convenience so callers need only one dependency in tests.
-export { planTyping } from '@cadence/engine';
-export type { TypingConfig, TypingEvent, TypingPlan } from '@cadence/engine';
+// `personas` lives in the engine (they're pure config presets) and is surfaced
+// here so existing `import { personas } from '@cadence/playwright'` keeps working.
+export { planTyping, personas } from '@cadence/engine';
+export type { TypingConfig, TypingEvent, TypingPlan, PersonaName } from '@cadence/engine';

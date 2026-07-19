@@ -15,6 +15,8 @@ export {
   sentencePauseMs,
 } from './model.ts';
 export { ADJACENT_KEYS, getAdjacentKey } from './qwerty.ts';
+export { personas } from './personas.ts';
+export type { PersonaName } from './personas.ts';
 export type {
   TypingConfig,
   TypingEvent,

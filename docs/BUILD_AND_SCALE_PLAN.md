@@ -141,7 +141,10 @@ OSS-led growth. The library *is* the top of funnel; content and community conver
       demo: the same buggy editor typed two ways, `fill()` passing green while `humanType`
       scrambles "hello world" → "dlrow olleh". Theme-aware, reduced-motion aware, zero external deps.
 - [x] MIT `LICENSE` files on the repo and both packages (publish hygiene).
-- [ ] Cypress plugin (`@cadence/cypress`).
+- [x] Cypress plugin (`@cadence/cypress`) — a `cy.humanType()` command backed by the engine;
+      pure ops translator + command glue, 13 unit tests against a fake `cy` (Cypress is an
+      optional peer, so CI needs no browser). Personas moved into the engine so both wrappers
+      share them.
 - [ ] Docs site (Docusaurus/Nextra). Getting-started in <5 min.
 - [ ] Write and ship the launch blog post.
 
@@ -190,4 +193,5 @@ fast-CI scaling, verified by real-browser E2E tests.
 **Done next**: the demo that sells the tool now exists (`examples/race-demo/`) — a real timing
 bug that `fill()` hides and `humanType` catches, as four green tests.
 
-**Next**: the Cypress plugin (`@cadence/cypress`) and the docs site / launch post.
+**Next**: the docs site and the launch blog post, then wire the playground/landing page to a
+public URL and publish the packages to npm.

@@ -4,7 +4,7 @@
  * Spreading a persona into `humanType` options gives a repeatable, recognisable
  * cadence. Override any field per call (e.g. `{ ...personas.fastDev, seed }`).
  */
-import type { TypingConfig } from '@cadence/engine';
+import type { TypingConfig } from './types.ts';
 
 export type PersonaName = 'fastDev' | 'steady' | 'huntAndPeck' | 'mobileThumb';
 
