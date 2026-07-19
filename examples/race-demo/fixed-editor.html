@@ -1,0 +1,27 @@
+<!doctype html>
+<meta charset="utf-8" />
+<title>Fixed editor</title>
+<!--
+  The same editor as buggy-editor.html, with the caret bug fixed: the async
+  normalize pass preserves the caret position instead of resetting it to the
+  start. It now behaves correctly under realistic per-keystroke timing.
+-->
+<textarea id="editor" rows="6" cols="60" aria-label="editor"></textarea>
+<script>
+  const editor = document.getElementById('editor');
+  let model = '';
+  let pending = null;
+
+  editor.addEventListener('input', () => {
+    model = editor.value;
+    if (pending !== null) return;
+    pending = setTimeout(() => {
+      pending = null;
+      const caret = editor.selectionStart; // remember where the user is…
+      editor.value = model;
+      editor.setSelectionRange(caret, caret); // …and put the caret back.
+    }, 5);
+  });
+
+  window.getEditorValue = () => editor.value;
+</script>

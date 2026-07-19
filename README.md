@@ -4,7 +4,8 @@
 > rhythm model — has been extracted into a standalone, pure, dependency-free package,
 > [`@cadence/engine`](packages/engine/), aimed at testing rich-text editors and recording
 > product demos. A Playwright wrapper, [`@cadence/playwright`](packages/playwright/), drives
-> it into real pages via genuine key events. See the
+> it into real pages via genuine key events. A [runnable demo](examples/race-demo/) shows a
+> real timing bug that `fill()` hides and `humanType` catches. See the
 > [build & scale plan](docs/BUILD_AND_SCALE_PLAN.md) for the strategy.
 
 **Invisible typing. Human results.**

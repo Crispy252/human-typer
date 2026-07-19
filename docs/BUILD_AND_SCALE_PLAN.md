@@ -134,8 +134,9 @@ OSS-led growth. The library *is* the top of funnel; content and community conver
       plan into a real page via genuine trusted key events; personas, deterministic seeds,
       `speedFactor` for fast CI, `clear`/`focus`, and pre-built-plan execution. 8 real-browser
       E2E tests (textarea + contenteditable, keydown-fires proof, determinism).
-- [ ] The "race condition caught by realistic timing" demo repo — a test that passes with
-      `fill()` but fails with `humanType`, because the editor had a real timing bug.
+- [x] The "race condition caught by realistic timing" demo (`examples/race-demo/`) — a real
+      caret-normalize bug that `fill()` hides (green = false confidence) and `humanType` catches
+      (`"hello world"` → `"dlrow olleh"`). Four green tests tell the story; runs in CI.
 - [ ] Cypress plugin (`@cadence/cypress`).
 - [ ] Docs site (Docusaurus/Nextra). Getting-started in <5 min.
 - [ ] Write and ship the launch blog post.
@@ -182,5 +183,7 @@ first OSS marketing asset.
 engine into a real editor via genuine key events, with personas, deterministic seeds, and
 fast-CI scaling, verified by real-browser E2E tests.
 
-**Next**: a "race condition caught by realistic timing" demo repo (the artifact that sells the
-tool), then the Cypress plugin and the docs site / launch post.
+**Done next**: the demo that sells the tool now exists (`examples/race-demo/`) — a real timing
+bug that `fill()` hides and `humanType` catches, as four green tests.
+
+**Next**: the Cypress plugin (`@cadence/cypress`) and the docs site / launch post.

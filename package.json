@@ -4,6 +4,7 @@
   "version": "0.0.0",
   "description": "Cadence — human-realistic typing engine and tooling.",
   "workspaces": [
-    "packages/*"
+    "packages/*",
+    "examples/*"
   ]
 }

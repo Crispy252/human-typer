@@ -34,8 +34,10 @@ jobs:
         with:
           node-version: '22'
       - run: npm install --no-audit --no-fund
-      # The wrapper imports the engine's build output at runtime.
+      # The wrapper and the demo import the built packages at runtime.
       - run: npm run build --workspace @cadence/engine
+      - run: npm run build --workspace @cadence/playwright
       - run: npx playwright install --with-deps chromium
       - run: npm test --workspace @cadence/playwright
-      - run: npm run build --workspace @cadence/playwright
+      # The demo: proves fill() hides a timing bug that humanType catches.
+      - run: npm test --workspace @cadence/example-race-demo
