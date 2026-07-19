@@ -148,6 +148,10 @@ OSS-led growth. The library *is* the top of funnel; content and community conver
 - [ ] Docs site (Docusaurus/Nextra). Getting-started in <5 min.
 - [x] Draft the launch blog post (`docs/launch-post.md`) — "Your editor tests type nothing like
       a human," grounded in the race-demo, with the honest-repositioning note.
+- [x] **AI-native pivot** (`@cadence/ai`) — plain-English → a validated `SessionScript`, authored
+      by Claude Fable 5 (Opus 4.8 fallback), compiled to actions for the wrappers. Model injected
+      behind a `generate` fn; schema/validator/compiler tested offline (14 tests, no API key). This
+      widens the buyer beyond "engineer who writes Playwright" to "anyone who can describe a user."
 
 **Weeks 6–8 — Launch & sell**
 - [ ] HN / Reddit / Lobsters launch of the OSS engine + post.

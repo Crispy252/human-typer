@@ -5,6 +5,7 @@ The monorepo publishes three packages to npm:
 - `@cadence/engine` — the pure core (no dependencies)
 - `@cadence/playwright` — depends on `@cadence/engine`
 - `@cadence/cypress` — depends on `@cadence/engine`
+- `@cadence/ai` — depends on `@cadence/engine` and `@anthropic-ai/sdk`
 
 ## Before publishing
 
@@ -41,6 +42,7 @@ The packages are public and scoped, so the first publish of each needs
 npm publish --workspace @cadence/engine --access public
 npm publish --workspace @cadence/playwright --access public
 npm publish --workspace @cadence/cypress --access public
+npm publish --workspace @cadence/ai --access public
 ```
 
 Bump versions in lockstep (they share a `^0.1.0` range on the engine). A tool like
