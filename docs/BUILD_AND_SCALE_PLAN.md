@@ -137,6 +137,10 @@ OSS-led growth. The library *is* the top of funnel; content and community conver
 - [x] The "race condition caught by realistic timing" demo (`examples/race-demo/`) — a real
       caret-normalize bug that `fill()` hides (green = false confidence) and `humanType` catches
       (`"hello world"` → `"dlrow olleh"`). Four green tests tell the story; runs in CI.
+- [x] Landing page (`site/index.html`) — a self-contained page whose hero is a live in-browser
+      demo: the same buggy editor typed two ways, `fill()` passing green while `humanType`
+      scrambles "hello world" → "dlrow olleh". Theme-aware, reduced-motion aware, zero external deps.
+- [x] MIT `LICENSE` files on the repo and both packages (publish hygiene).
 - [ ] Cypress plugin (`@cadence/cypress`).
 - [ ] Docs site (Docusaurus/Nextra). Getting-started in <5 min.
 - [ ] Write and ship the launch blog post.
